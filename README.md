@@ -1,5 +1,3 @@
-Giving by the Numbers: Empirical Evidence on Anchoring from Online Donation Platforms
-
 
 The aim of this project is to test behavioral economic theories surrounding the practices of anchoring and nudging through the collection and evaluation of internet data. Several crowdfunding websites provide an ideal vantage point to study these economic theories. Through displaying previous donations on screen, they provide an anchor for each subsequent donor to latch on to, potentially influencing the donor’s decision to give as well as the size of the donation. Analyzing online data has several advantages (and some disadvantages) to traditional methods of studying anchoring. Internet donations provide a reflection of people’s true behavior; there is no error born from the conditions of a hypothetical environment and it does not rely on people’s stated willingness to pay, contrary to experimental and survey approaches. Additionally, the volume of internet data on donations far exceeds anything that would feasible for most experimental studies. 
 

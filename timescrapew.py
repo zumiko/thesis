@@ -27,16 +27,25 @@ class TymeSpyder(scrapy.Spider):
     def parse(self, response):
         print("parsing")
         data = json.loads(response.body)
+
         df = pd.DataFrame(data)
-        export_csv = df.to_csv (r'C:\Users\Claire\Desktop\export_dataframe.csv', index = None, header=True)
-        print(df)
+        references = (df['references'])
+        donations = references[0]
+        dfdonations = pd.DataFrame(donations)
+
+        #print(references)
+        print(references[0])
+        meta = (df['meta'])
+        export_csv = dfdonations.to_csv (r'C:\Users\Claire\Desktop\donations1_dataframe.csv', index = None, header=True)
+        #print(df)
         #for item in data.get('references', []):
 
             #print(str(item))
             #https://stackoverflow.com/questions/42524415/need-help-in-python-for-json-data-scraping
+            #print(item[2])
             #DonationObject = {
-                    #'donation_id' : data[0]['donation_id']
-                    #'donation_id': item.get('donation_id'),
+                    #'donation_id' : item[0:10]
+                    #'donation_id': item.get(1),
                     #'amount': item.get('amount'),
                     #'is_offline': item.get('is_offline'),
                     #'is_anonymous': item.get('is_anonymous'),
@@ -61,3 +70,7 @@ class TymeSpyder(scrapy.Spider):
 process = CrawlerProcess()
 process.crawl(TymeSpyder)
 process.start()
+
+
+#for person in data['people']: 
+    #print(person['name'])

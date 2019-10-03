@@ -1,0 +1,32 @@
+---
+title: "trial"
+author: "Claire Jellison"
+date: "10/2/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+install.packages("ggplot2")
+library(ggplot)
+```
+
+
+```{r}
+
+d <- read.csv("C:\\Users\\Claire\\Desktop\\donations1_dataframe.csv")
+#summary(d)
+#structure(d)
+d$index <- seq.int(nrow(d))
+head(d)
+ggplot(d, aes(amount)) + geom_histogram(binwidth = 5) 
+summary(d$amount)
+ggplot(d, aes(x = index, y = amount)) + geom_line() #+ xlim(0,20)
+
+```
+

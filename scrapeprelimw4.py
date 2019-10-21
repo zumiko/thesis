@@ -4,8 +4,27 @@ import json
 import random
 from scrapy.crawler import CrawlerProcess
 
-#https://www.gofundme.com/mvc.php?route=categorypages/load_more&page=4&term=&cid=11 it be like this
+
 #list of categories: 
+#medical: cid=11
+#memorial: cid=9
+#emergency: cid=2
+#nonprofit: cid=13
+#education: cid=17
+#animals: cid=3
+#business: cid=5
+#community: cid=7
+#competition: cid=19
+#creative: cid=8
+#event: cid=6 
+#faith: cid=12
+#family: cid=4
+#newlywed: cid=14
+#sports: cid=16
+#travel: cid=10
+#volunter: cid=18
+#wishes: cid=20
+
 
 
 
@@ -42,7 +61,7 @@ class gfm_Spider(scrapy.Spider):
     #url1 = "https://www.gofundme.com/mvc.php?route=categorypages/load_more&page=1&term=&cid=11"
     
     while self.i <= 100: 
-      url1 = "https://www.gofundme.com/mvc.php?route=categorypages/load_more&page=%s&term=&cid=11" %(self.i) # you can prob just make load more pages high and not have to worry about iterating 
+      url1 = "https://www.gofundme.com/mvc.php?route=categorypages/load_more&page=%s&term=&cid=2" %(self.i) # you can prob just make load more pages high and not have to worry about iterating 
       print("initiating request" + str(self.i))
       #print(url1)
       yield scrapy.Request(url = url1,

@@ -54,10 +54,10 @@ class gfm_Spider(scrapy.Spider):
     tile = response.css('div.react-campaign-tile') #this is getting each tile 
     tile_links = tile.xpath('./a/@href') #this gets links to individual campaigns 
     links_to_follow = tile_links.extract()
-    self.allinks.append(links_to_follow)
+    self.allinks.extend(links_to_follow) # used to say append
     if self.i >= 28:
       print(self.allinks)
-    self.duplicate_rule(links_to_follow)
+    self.duplicate_rule(self.allinks)
 
 
 

@@ -8,11 +8,17 @@ import pandas as pd
 # Import the CrawlerProcess: for running the spider
 from scrapy.crawler import CrawlerProcess
 
+#https://gateway.gofundme.com/web-gateway/v1/feed/military-veteran-rent-pass-due-eviction-notice/donations?limit=1000  1
+#https://gateway.gofundme.com/web-gateway/v1/feed/helptheleague/donations?limit=1000 2
+#https://gateway.gofundme.com/web-gateway/v1/feed/open-door-baptist-church-central-air-unit/donations?limit=1000 3
+#https://gateway.gofundme.com/web-gateway/v1/feed/brianisbell/donations?limit=1000 4
+#https://gateway.gofundme.com/web-gateway/v1/feed/reunite-family-with-dog-after-deportation/donations?limit=1000 5
+
 class TymeSpyder(scrapy.Spider):
-    name = 'spidyquotes'
-    camp_base_url = 'https://gateway.gofundme.com/web-gateway/v1/feed/financial-support-for-tyler-trexler-and-his-family/donations?limit=500&offset=20'
+    name = 'timescrape'
+    camp_base_url = 'https://gateway.gofundme.com/web-gateway/v1/feed/reunite-family-with-dog-after-deportation/donations?limit=1000 '
     #start_urls = [quotes_base_url % 1]
-    download_delay = 2.0
+    download_delay = 4.0 #used to be 2 
     custom_settings = {
     'USER_AGENT' : 'gfm_spider',
     }
@@ -20,7 +26,7 @@ class TymeSpyder(scrapy.Spider):
 
     def start_requests(self):
         allowed_domains = ['gofundme.com']
-        camp_base_url = 'https://gateway.gofundme.com/web-gateway/v1/feed/financial-support-for-tyler-trexler-and-his-family/donations?limit=500&offset=20'
+        camp_base_url = 'https://gateway.gofundme.com/web-gateway/v1/feed/reunite-family-with-dog-after-deportation/donations?limit=1000 '
         yield scrapy.Request(url = camp_base_url,
                                callback = self.parse)
 
@@ -36,7 +42,7 @@ class TymeSpyder(scrapy.Spider):
         #print(references)
         print(references[0])
         meta = (df['meta'])
-        export_csv = dfdonations.to_csv (r'C:\Users\Claire\Desktop\donations1_dataframe.csv', index = None, header=True)
+        export_csv = dfdonations.to_csv (r'C:\Users\Claire\Desktop\d362065.csv', index = None, header=True)
         #print(df)
         #for item in data.get('references', []):
 

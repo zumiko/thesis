@@ -1,3 +1,6 @@
+basically, ignore everything except for complete2.py
+
+
 
 prelimscrapezipw = input zipcodes to get campaigns with those codes
 

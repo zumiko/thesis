@@ -103,15 +103,31 @@ dfclean <- cleanattributes(campattributes)
 head(dfclean)
 ```
 
-### Clean donations data 
+### time donations data 
 
 ```{r}
-head(fulldf)
-hmm <- fulldf  %>% select(amount, created_at, urlsolid) %>% group_by(urlsolid) %>% mutate(lag1 = lag(amount,n = 1L), lag2 = lag(amount,n = 2L), lag3= lag(amount,n = 3L), lag4= lag(amount,n = 4L), lag5= lag(amount,n = 5L))
-head(hmm)
+hmm <- fulldf  %>% select(amount, created_at, urlsolid, is_anonymous) %>% group_by(urlsolid) %>% mutate(lag1 = lag(amount,n = 1L), lag2 = lag(amount,n = 2L), lag3= lag(amount,n = 3L), lag4= lag(amount,n = 4L), lag5= lag(amount,n = 5L)) %>% mutate(alag1 = lag(is_anonymous,n = 1L), alag2 = lag(is_anonymous,n = 2L), alag3= lag(is_anonymous,n = 3L), alag4= lag(is_anonymous,n = 4L), alag5= lag(is_anonymous,n = 5L))
+hmm2 <- na.omit(hmm)
+hmm2$alag1 <- as.integer(as.logical(hmm2$alag1)) #switches from true false to 0/1
+hmm2$alag2 <- as.integer(as.logical(hmm2$alag2))
+hmm2$alag3 <- as.integer(as.logical(hmm2$alag3))
+hmm2$alag4 <- as.integer(as.logical(hmm2$alag4))
+hmm2$alag5 <- as.integer(as.logical(hmm2$alag5))
+hmm2 <- hmm2 %>% mutate(meanonscreen = (lag1 + lag2 + lag3 + lag4 + lag5)/5) %>% mutate(anonpropscreen = (alag1 + alag2 + alag3 + alag4 + alag5)/5) 
+head(hmm2)
+```
+
+#mean reg
+```{r}
+meanlm <- lm(amount ~ meanonscreen, data = hmm2)
+summary(meanlm)
 ```
 
 
+```{r}
+anonlm <- lm(is_anonymous ~ anonpropscreen, data = hmm2)
+summary(anonlm)
+```
 
 
 

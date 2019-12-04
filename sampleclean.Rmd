@@ -16,6 +16,7 @@ library(dplyr)
 library(tidyverse)
 library(ggplot2)
 library(stringr)
+library(varhandle)
 ```
 
 
@@ -48,16 +49,30 @@ campattributes <- campattributes[ , -1] #drop first column
 #Join tables on urlsolid
 ```{r}
 fulldf <- left_join(compmerge, zip3, by = 'urlsolid') 
+fulldf$is_anonymous <- str_detect(fulldf$is_anonymous, "True")
+fulldf$verified <- str_detect(fulldf$verified, "True")
+fulldf$is_offline <- str_detect(fulldf$is_offline, "True")
+head(fulldf)
 ```
 
 #Summary stats 
 ```{r}
 mean(fulldf$amount)
 median(fulldf$amount)
+mean(fulldf$is_anonymous)
 ggplot(data = fulldf, aes(x = amount)) + geom_bar() + xlim(0, 100) + ylim(0,250)
 ```
 
-### Clean the campattributes data 
+### Clean camp attributes data 
+
+```{r}
+#stuff in stringr 
+#str_trim = trim leading and trailing white space 
+#str_pad = pad with additional characters 
+#str_detect = detects a pattern, returns TRUE/FALSE 
+#str_replace = find and replace a pattern 
+```
+
 
 ```{r}
 head(campattributes)
@@ -73,23 +88,30 @@ cleanattributes <- function(dfatt){
      ignore.case = FALSE)
   dfatt$goalnum <- gsub("goal'", "", dfatt$goalnum,
      ignore.case = FALSE)
-  dfatt$goalnum <- gsub("[[:punct:]]", "", dfatt$goalnum,
+  dfatt$goalamt<- gsub("[[:punct:]]", "", dfatt$goalnum,  #yo you can also use str_replace if ya want
      ignore.case = FALSE)
-  dfatt$amtnum<- gsub("[[:punct:]]", "", dfatt$amtraised,
+  dfatt$amtraised<- gsub("[[:punct:]]", "", dfatt$amtraised,
      ignore.case = FALSE)
-  #dfatt <- dfatt %>% mutate(percentmet = amtnum/goalnum)
-  if (is.null(dfatt$terminated)) {  #this terminated boolean isn't working 
-    dfatt$terminatedbool = 1} 
-  else {dfatt$terminatedbool = 0}
-  dfatt
-  
+  dfatt$goalamt <- as.integer(dfatt$goalamt)
+  dfatt$amtraised <- as.integer(dfatt$amtraised)
+  dfatt$terminatedbool <- str_detect(dfatt$terminated, "donations") #this doesn't work? DOUBLE CHECK
+  dfatt$nonprofit <- str_detect(dfatt$nonprofit., "Registered")
+  dfatt<- dfclean %>% mutate(progress = amtnum/goalnum)
 }
 
 dfclean <- cleanattributes(campattributes)
 head(dfclean)
 ```
 
+### Clean donations data 
+
 ```{r}
-summary(dfclean$terminatedbool)
+head(fulldf)
+hmm <- fulldf  %>% select(amount, created_at, urlsolid) %>% group_by(urlsolid) %>% mutate(lag1 = lag(amount,n = 1L), lag2 = lag(amount,n = 2L), lag3= lag(amount,n = 3L), lag4= lag(amount,n = 4L), lag5= lag(amount,n = 5L))
+head(hmm)
 ```
+
+
+
+
 

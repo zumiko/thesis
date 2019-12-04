@@ -1,0 +1,164 @@
+---
+title: "import"
+author: "Claire Jellison"
+date: "11/24/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readr)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(stringr)
+library(gsub)
+
+```
+
+#this function stacks the csvs
+```{r}
+lapply_read_csv_bind_rows <- function(path, pattern = "*.csv") {
+    files = list.files(path, pattern, full.names = TRUE)
+    lapply(files, read_csv) %>% bind_rows()
+}
+
+```
+
+
+#paths
+```{r}
+path2 <- "/Users/CJ/Desktop/thesisdata/sample2" #path to timehist data 
+#pathzip <- "/Users/CJ/Desktop/thesisdata/sample2" #path to zipdata 
+pathzip <- "/Users/CJ/Desktop/thesisdata/sample2/aaa/campattributes.csv" #path to campattributes
+```
+
+```{r}
+campattributes <- read.csv(pathzip, row.names=1)
+```
+
+
+
+```{r}
+dfhist <-lapply_read_csv_bind_rows(path2, pattern = "*.csv")
+```
+
+```{r}
+summary(dfhist)
+head(dfhist)
+dim(dfhist)
+```
+
+```{r}
+dim(dfhist)
+```
+
+#convert to data table 
+```{r}
+dfhist <- tbl_df(dfhist)
+campatt <- tbl_df(campattributes)
+```
+
+```{r}
+
+```
+
+```{r}
+count(dfhist, urlsolid)
+```
+
+```{r}
+cname <- dfhist %>% filter(urlsolid ==  "28b3kc")
+cname
+```
+
+```{r}
+#head(campatt)
+cname2 <- campatt %>% filter(urlname == "28b3kc")
+cname2
+```
+
+
+### Sample 3 
+
+## Read in data 
+```{r}
+pathmerge <- "/Users/CJ/Desktop/thesisdata/sample3/donationhist.csv" 
+pathzip3 <- "/Users/CJ/Desktop/thesisdata/sample3/campsbyzip1.csv" 
+pathattributes <- "/Users/CJ/Desktop/thesisdata/sample3/campattributes.csv" 
+compmerge <- read.csv(pathmerge)
+compmerge <- tbl_df(compmerge)
+zip3 <- read.csv(pathzip3)
+zip3 <- tbl_df(zip3)
+campattributes <- read.csv(pathattributes)
+campattributes <- tbl_df(campattributes)
+count(compmerge, urlsolid)
+
+```
+
+#Rename stuff in tables for merging 
+```{r}
+zip3 <- zip3 %>% 
+  rename(
+   urlsolid = X,
+    zipcode = X0 
+    )
+campattributes <- campattributes[ , -1] #drop first column 
+head(campattributes)
+
+
+```
+
+#Join all tables together 
+```{r}
+fulldf <- left_join(compmerge, zip3, by = 'urlsolid') 
+head(fulldf)
+```
+
+### Summary stats 
+
+```{r}
+mean(fulldf$amount)
+median(fulldf$amount)
+mean(fulldf$is_anonymous)
+ggplot(data = fulldf, aes(x = amount)) + geom_bar() + xlim(0, 100) + ylim(0,250)
+```
+### Clean the campattributes data 
+
+```{r}
+head(campattributes)
+```
+
+```{r}
+getdigits <- function(string){
+  list(regmatches(string,gregexpr("[[:digit:]]+\\.*[[:digit:]]*",string)))
+}
+
+cleanattributes <- function(dfatt){ 
+  dfatt$goalnum <- gsub("'raised of", "", dfatt$goalamt,
+     ignore.case = FALSE)
+  dfatt$goalnum <- gsub("goal'", "", dfatt$goalnum,
+     ignore.case = FALSE)
+  dfatt$goalnum <- gsub("[[:punct:]]", "", dfatt$goalnum,
+     ignore.case = FALSE)
+  dfatt$amtnum<- gsub("[[:punct:]]", "", dfatt$amtraised,
+     ignore.case = FALSE)
+  #dfatt <- dfatt %>% mutate(percentmet = amtnum/goalnum)
+  if (is.null(dfatt$terminated)) {  #this terminated boolean isn't working 
+    dfatt$terminatedbool = 1} 
+  else {dfatt$terminatedbool = 0}
+  dfatt
+  
+}
+
+dfclean <- cleanattributes(campattributes)
+head(dfclean)
+```
+
+```{r}
+summary(dfclean$terminatedbool)
+```
+

@@ -1,0 +1,59 @@
+---
+title: "visuals"
+author: "Claire Jellison"
+date: "12/23/2019"
+output: pdf_document
+---
+
+```{r}
+library(ggmap)
+library(zipcode)
+library(ggplot2)
+library(maps)
+library(viridis)
+```
+
+```{r}
+count(dhist, urlsolid)
+```
+
+https://austinwehrwein.com/digital-humanities/creating-a-density-map-in-r-with-zipcodes/
+
+#Now for map stuff 
+
+```{r}
+campattributes$urlsolid = campattributes$urlname
+campzip <- left_join(campattributes, zip3, by = "urlsolid")
+campzip$zip<- clean.zipcodes(campzip$zip)
+data(zipcode)
+mapdf<- merge(campzip, zipcode, by='zip')
+countdf <- mapdf %>% select(urlname, zip) %>% group_by(zip) %>%  summarise(count = n_distinct(urlname))
+mapdf <- left_join(mapdf, countdf, by = "zip")
+```
+
+
+```{r}
+us<-map_data('state')
+
+ggplot(mapdf,aes(longitude,latitude)) +
+  geom_polygon(data=us,aes(x=long,y=lat,group=group),color='grey',fill=NA) +
+  geom_point(aes(size= count,color = count), alpha=.25) +
+  xlim(-125,-65)+ylim(23,50)
+```
+
+```{r}
+ggplot(data = dhist, aes(x = amount)) + geom_bar() + xlim(0, 100) + ylim(0,300)
+```
+
+```{r}
+bidf <- dhist %>% filter(urlsolid == "brianisbell")
+bidf$index <- seq.int(nrow(bidf))
+j = ggplot() + 
+  geom_line(data = bidf, aes(x = index, y = histavg), color = "blue") + 
+  geom_line(data = bidf, aes(x = index, y = amount), color = "red") + 
+  geom_line(data = bidf, aes(x = index, y = futavg), color = "green") + 
+  xlab('index') + 
+  ylab('amount')
+print(j)
+```
+

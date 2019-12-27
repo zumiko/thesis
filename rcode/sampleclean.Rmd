@@ -17,53 +17,65 @@ library(tidyverse)
 library(ggplot2)
 library(stringr)
 library(varhandle)
+library(tidyr)
 ```
-
+TODO: 
+look at what happens when no money raised so far 
 
 ## Read in data 
 ```{r}
-pathmerge <- "/Users/CJ/Desktop/thesisdata/sample3/donationhist.csv" 
+pathhist <- "/Users/CJ/Desktop/thesisdata/sample3/donationhist.csv" 
 pathzip3 <- "/Users/CJ/Desktop/thesisdata/sample3/campsbyzip1.csv" 
 pathattributes <- "/Users/CJ/Desktop/thesisdata/sample3/campattributes.csv" 
-compmerge <- read.csv(pathmerge)
-compmerge <- tbl_df(compmerge)
+
+dhist <- read.csv(pathhist)
+dhist <- tbl_df(dhist)
+
 zip3 <- read.csv(pathzip3)
 zip3 <- tbl_df(zip3)
+
 campattributes <- read.csv(pathattributes)
 campattributes <- tbl_df(campattributes)
-count(compmerge, urlsolid)
 
 ```
 
-#Rename stuff in tables for merging 
+#Clean zips 
 ```{r}
 zip3 <- zip3 %>% 
   rename(
    urlsolid = X,
-    zipcode = X0 
+    zip = X0 
     )
-campattributes <- campattributes[ , -1] #drop first column 
 ```
 
-
-#Join tables on urlsolid
+#Clean dhist
 ```{r}
-fulldf <- left_join(compmerge, zip3, by = 'urlsolid') 
-fulldf$is_anonymous <- str_detect(fulldf$is_anonymous, "True")
-fulldf$verified <- str_detect(fulldf$verified, "True")
-fulldf$is_offline <- str_detect(fulldf$is_offline, "True")
-head(fulldf)
+prepdhist <- function(dhist){ #switch to booleans, merge with zips
+dhist <- left_join(dhist, zip3, by = 'urlsolid') 
+dhist$is_anonymous <- str_detect(dhist$is_anonymous, "True")
+dhist$verified <- str_detect(dhist$verified, "True")
+dhist$is_offline <- str_detect(dhist$is_offline, "True")
+dhist
+}
+
+laglead <- function(fulldf){ #add the lags and leads
+fulldf <- fulldf %>% group_by(as.factor(urlsolid)) %>% arrange(created_at) %>% mutate(lag1 = lag(amount,n = 1L), lag2 = lag(amount,n = 2L), lag3= lag(amount,n = 3L), lag4= lag(amount,n = 4L), lag5= lag(amount,n = 5L), alag1 = lag(is_anonymous,n = 1L), alag2 = lag(is_anonymous,n = 2L), alag3= lag(is_anonymous,n = 3L), alag4= lag(is_anonymous,n = 4L), alag5= lag(is_anonymous,n = 5L), lead1 = lead(amount,n = 1L), lead2 = lead(amount,n = 2L), lead3= lead(amount,n = 3L), lead4= lead(amount,n = 4L),lead5= lead(amount,n = 5L)) 
+fulldf$alag1 <- as.integer(as.logical(fulldf$alag1)) #switches from true/false to 0/1
+fulldf$alag2 <- as.integer(as.logical(fulldf$alag2))
+fulldf$alag3 <- as.integer(as.logical(fulldf$alag3))
+fulldf$alag4 <- as.integer(as.logical(fulldf$alag4))
+fulldf$alag5 <- as.integer(as.logical(fulldf$alag5))
+fulldf <- fulldf %>% mutate(histavg = (lag1 + lag2 + lag3 + lag4 + lag5)/5) %>% mutate(anonpropscreen = (alag1 + alag2 + alag3 + alag4 + alag5)/5)  %>% mutate(futavg = (lead1 + lead2 + lead3 + lead4 + lead5)/5)
+fulldf }
+
 ```
 
-#Summary stats 
 ```{r}
-mean(fulldf$amount)
-median(fulldf$amount)
-mean(fulldf$is_anonymous)
-ggplot(data = fulldf, aes(x = amount)) + geom_bar() + xlim(0, 100) + ylim(0,250)
+dhist <- prepdhist(dhist)
+dhist <-laglead(dhist)
 ```
 
-### Clean camp attributes data 
+### Clean campattributes 
 
 ```{r}
 #stuff in stringr 
@@ -73,22 +85,18 @@ ggplot(data = fulldf, aes(x = amount)) + geom_bar() + xlim(0, 100) + ylim(0,250)
 #str_replace = find and replace a pattern 
 ```
 
-
-```{r}
-head(campattributes)
-```
-
 ```{r}
 getdigits <- function(string){
   list(regmatches(string,gregexpr("[[:digit:]]+\\.*[[:digit:]]*",string)))
 }
 
 cleanattributes <- function(dfatt){ 
-  dfatt$goalnum <- gsub("'raised of", "", dfatt$goalamt,
+  dfatt <- dfatt[ , -1]
+  dfatt$goalamt <- gsub("'raised of", "", dfatt$goalamt,
      ignore.case = FALSE)
-  dfatt$goalnum <- gsub("goal'", "", dfatt$goalnum,
+  dfatt$goalamt <- gsub("goal'", "", dfatt$goalamt,
      ignore.case = FALSE)
-  dfatt$goalamt<- gsub("[[:punct:]]", "", dfatt$goalnum,  #yo you can also use str_replace if ya want
+  dfatt$goalamt<- gsub("[[:punct:]]", "", dfatt$goalamt,  #yo you can also use str_replace if ya want
      ignore.case = FALSE)
   dfatt$amtraised<- gsub("[[:punct:]]", "", dfatt$amtraised,
      ignore.case = FALSE)
@@ -96,38 +104,20 @@ cleanattributes <- function(dfatt){
   dfatt$amtraised <- as.integer(dfatt$amtraised)
   dfatt$terminatedbool <- str_detect(dfatt$terminated, "donations") #this doesn't work? DOUBLE CHECK
   dfatt$nonprofit <- str_detect(dfatt$nonprofit., "Registered")
-  dfatt<- dfclean %>% mutate(progress = amtnum/goalnum)
+  dfatt<- dfatt%>% mutate(progress = amtraised/goalamt)
 }
 
-dfclean <- cleanattributes(campattributes)
-head(dfclean)
-```
 
-### time donations data 
+```
 
 ```{r}
-hmm <- fulldf  %>% select(amount, created_at, urlsolid, is_anonymous) %>% group_by(urlsolid) %>% mutate(lag1 = lag(amount,n = 1L), lag2 = lag(amount,n = 2L), lag3= lag(amount,n = 3L), lag4= lag(amount,n = 4L), lag5= lag(amount,n = 5L)) %>% mutate(alag1 = lag(is_anonymous,n = 1L), alag2 = lag(is_anonymous,n = 2L), alag3= lag(is_anonymous,n = 3L), alag4= lag(is_anonymous,n = 4L), alag5= lag(is_anonymous,n = 5L))
-hmm2 <- na.omit(hmm)
-hmm2$alag1 <- as.integer(as.logical(hmm2$alag1)) #switches from true false to 0/1
-hmm2$alag2 <- as.integer(as.logical(hmm2$alag2))
-hmm2$alag3 <- as.integer(as.logical(hmm2$alag3))
-hmm2$alag4 <- as.integer(as.logical(hmm2$alag4))
-hmm2$alag5 <- as.integer(as.logical(hmm2$alag5))
-hmm2 <- hmm2 %>% mutate(meanonscreen = (lag1 + lag2 + lag3 + lag4 + lag5)/5) %>% mutate(anonpropscreen = (alag1 + alag2 + alag3 + alag4 + alag5)/5) 
-head(hmm2)
-```
-
-#mean reg
-```{r}
-meanlm <- lm(amount ~ meanonscreen, data = hmm2)
-summary(meanlm)
+campattributes <- cleanattributes(campattributes)
 ```
 
 
-```{r}
-anonlm <- lm(is_anonymous ~ anonpropscreen, data = hmm2)
-summary(anonlm)
-```
+
+
+
 
 
 

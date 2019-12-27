@@ -1,0 +1,26 @@
+---
+title: "regs"
+author: "Claire Jellison"
+date: "12/26/2019"
+output: pdf_document
+---
+
+```{r}
+library(texreg)
+```
+
+
+```{r}
+#mean reg
+meanlm <- lm(amount ~ histavg, data = dhist)
+summary(meanlm)
+#texreg(meanlm)
+```
+
+
+```{r}
+#anon reg
+anonlm <- lm(as.logical(is_anonymous) ~ anonpropscreen, data = dhist)
+summary(anonlm)
+#texreg(anonlm)
+```

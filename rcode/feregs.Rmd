@@ -1,0 +1,30 @@
+---
+title: "feregs"
+author: "Claire Jellison"
+date: "1/23/2020"
+output: pdf_document
+---
+
+#what this website is so useful go to it 
+#https://www.econometrics-with-r.org/10-3-fixed-effects-regression.html
+
+```{r}
+library(plm)
+library(xts)
+```
+
+
+```{r}
+dhistfe1 <- dhist1 %>% ungroup(urlsolid)
+dhistfe1$createdxts <- make.time.unique(dhistfe1$createdxts)
+dhistfe1$id <- seq.int(nrow(dhistfe1))
+dhistfe1$createdxtsid  <- paste(dhistfe1$createdxts, dhistfe1$id, sep="_")
+dhistpanel1 <- pdata.frame(dhistfe1, index = c("urlsolid", "createdxtsid"), drop.index = TRUE)
+anchorfe <- plm(amount ~ histavg, 
+                    data = dhistpanel1, 
+                    model = "within")
+summary(anchorfe)
+texreg(anchorfe)
+```
+
+#use the Hausmann test phtest to determine whether fixed effects or random effects

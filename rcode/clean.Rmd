@@ -1,0 +1,167 @@
+---
+title: "clean"
+author: "Claire Jellison"
+date: "12/27/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(readr)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(stringr)
+library(varhandle)
+library(tidyr)
+```
+
+## Read in data 
+```{r}
+pathhist1 <- "/Users/CJ/Desktop/thesisdata/part1/donationhist.csv" 
+pathzip1 <- "/Users/CJ/Desktop/thesisdata/part1/campsbyzip1.csv" 
+pathattributes1 <- "/Users/CJ/Desktop/thesisdata/part1/campattributes.csv" 
+pathhist2 <- "/Users/CJ/Desktop/thesisdata/part2/donationhist.csv" 
+#pathzip2 <- "/Users/CJ/Desktop/thesisdata/part2/campsbyzip2.csv" 
+#pathattributes2 <- "/Users/CJ/Desktop/thesisdata/part2/campattributes.csv" 
+
+dhist1 <- read.csv(pathhist1)
+dhist1 <- tbl_df(dhist1)
+dhist2 <- read.csv(pathhist2)
+dhist2 <- tbl_df(dhist2)
+
+zip1 <- read.csv(pathzip1)
+zip1 <- tbl_df(zip1)
+#zip2 <- read.csv(pathzip2)
+#zip2 <- tbl_df(zip2)
+
+campatt1 <- read.csv(pathattributes1)
+campatt1<- tbl_df(campatt1)
+#campatt2<- read.csv(pathattributes2)
+#campatt2<- tbl_df(campatt2)
+
+```
+
+#Clean zips 
+```{r}
+prepzip <- function(zips){
+zips <- zips %>% 
+  rename(
+   urlsolid = X,
+    zip = X0 
+  ) 
+zips
+} 
+
+zip1 <- prepzip(zip1)
+#zip2 <- prepzip(zip2)
+```
+
+#Clean dhist
+```{r}
+prepdhist <- function(dhist){ #switch to booleans, merge with zips
+dhist <- left_join(dhist, zip1, by = 'urlsolid') #yikes this doesnt look like it is working, fix it 
+dhist$is_anonymous <- str_detect(dhist$is_anonymous, "True")
+dhist$verified <- str_detect(dhist$verified, "True")
+dhist$is_offline <- str_detect(dhist$is_offline, "True")
+dhist
+}
+
+laglead <- function(fulldf){ #add the lags and leads
+fulldf <- fulldf %>% group_by(as.factor(urlsolid)) %>% arrange(created_at) %>% mutate(lag1 = lag(amount,n = 1L), lag2 = lag(amount,n = 2L), lag3= lag(amount,n = 3L), lag4= lag(amount,n = 4L), lag5= lag(amount,n = 5L), alag1 = lag(is_anonymous,n = 1L), alag2 = lag(is_anonymous,n = 2L), alag3= lag(is_anonymous,n = 3L), alag4= lag(is_anonymous,n = 4L), alag5= lag(is_anonymous,n = 5L), lead1 = lead(amount,n = 1L), lead2 = lead(amount,n = 2L), lead3= lead(amount,n = 3L), lead4= lead(amount,n = 4L),lead5= lead(amount,n = 5L)) 
+fulldf$alag1 <- as.integer(as.logical(fulldf$alag1)) #switches from true/false to 0/1
+fulldf$alag2 <- as.integer(as.logical(fulldf$alag2))
+fulldf$alag3 <- as.integer(as.logical(fulldf$alag3))
+fulldf$alag4 <- as.integer(as.logical(fulldf$alag4))
+fulldf$alag5 <- as.integer(as.logical(fulldf$alag5))
+fulldf <- fulldf %>% mutate(histavg = (lag1 + lag2 + lag3 + lag4 + lag5)/5) %>% mutate(anonpropscreen = (alag1 + alag2 + alag3 + alag4 + alag5)/5)  %>% mutate(futavg = (lead1 + lead2 + lead3 + lead4 + lead5)/5)
+fulldf }
+
+#nts: had to run devtools::install_github("ropensci/genderdata") 
+addgender <- function(dhist){ #add the gender based on first names by social security 
+  firstname <- word(dhist$name, 1)
+  firstname<- as.data.frame(firstname)
+  dfull <- bind_cols(dhist, firstname)
+  genderdf <- gender(as.character(dfull$firstname), method = "ssa") 
+  genderdf$firstname <- genderdf$name
+  genderdf <- distinct(genderdf) %>% select(-proportion_male, -proportion_female, -year_min, -year_max)
+  finaldf <- left_join(dfull, genderdf, by = "firstname") 
+  finaldf$isfemale <- as.integer(str_detect(finialdf$gender, "female")) #get boolean for is female
+  finaldf 
+}
+
+```
+
+```{r}
+dhist1 <- prepdhist(dhist1)
+dhist1 <- laglead(dhist1)
+dhist1 <- addgender(dhist1)
+
+dhist2 <- prepdhist(dhist2)
+dhist2 <-laglead(dhist2)
+head(dhist1, 30)
+```
+
+### Clean campattributes 
+
+```{r}
+#stuff in stringr 
+#str_trim = trim leading and trailing white space 
+#str_pad = pad with additional characters 
+#str_detect = detects a pattern, returns TRUE/FALSE 
+#str_replace = find and replace a pattern 
+```
+
+```{r}
+getdigits <- function(string){
+  list(regmatches(string,gregexpr("[[:digit:]]+\\.*[[:digit:]]*",string)))
+}
+
+cleanattributes <- function(dfatt){ 
+  dfatt <- dfatt[ , -1]
+  dfatt$goalamt <- gsub("'raised of", "", dfatt$goalamt,
+     ignore.case = FALSE)
+  dfatt$goalamt <- gsub("goal'", "", dfatt$goalamt,
+     ignore.case = FALSE)
+  dfatt$goalamt<- gsub("[[:punct:]]", "", dfatt$goalamt,  #yo you can also use str_replace if ya want
+     ignore.case = FALSE)
+  dfatt$amtraised<- gsub("[[:punct:]]", "", dfatt$amtraised,
+     ignore.case = FALSE)
+  dfatt$goalamt <- as.integer(dfatt$goalamt)
+  dfatt$amtraised <- as.integer(dfatt$amtraised)
+  dfatt$terminatedbool <- str_detect(dfatt$terminated, "donations") #this doesn't work? DOUBLE CHECK
+  dfatt$nonprofit <- str_detect(dfatt$nonprofit., "Registered")
+  dfatt<- dfatt%>% mutate(progress = amtraised/goalamt)
+}
+
+
+```
+
+```{r}
+campatt1 <- cleanattributes(campatt1)
+#campatt2 <- cleanattributes(campatt2)
+```
+
+
+
+#checking that it looks right below 
+
+```{r}
+nrow(dhist1)
+nrow(dhist2)
+dfc <- dhist1 %>% group_by(urlsolid) %>% summarise(numdonations = n_distinct(donation_id))
+dfcc <- dhist2 %>% group_by(urlsolid) %>% summarise(numdonations = n_distinct(donation_id))
+nrow(dfc)
+nrow(dfcc)
+dfc2 <- dfc %>% filter(numdonations %% 100 == 0) 
+dfcc2 <- dfcc %>% filter(numdonations %% 100 == 0) 
+nrow(dfc2)
+nrow(dfcc2)
+head(dfc2,200)
+
+```
+

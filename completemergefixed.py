@@ -5,9 +5,6 @@ from getzips import *
 from scrapy.crawler import CrawlerProcess
 
 
-
-
-
 #first sheet has all zipcodes in search and associated campaign urls 
 #second sheet has associated info for each campaign for a given zipcode 
 #third sheet has donation history for each campaign
@@ -23,7 +20,7 @@ class gfm_Spider(scrapy.Spider):
   custom_settings = {
     'USER_AGENT' : 'gfm_spider',
     'DOWNLOAD_DELAY' : 1.25, 
-    'DEPTH_PRIORITY' : 1,
+    'DEPTH_PRIORITY' : 1,  #switch to breadth first crawl
     'SCHEDULER_DISK_QUEUE' : 'scrapy.squeues.PickleFifoDiskQueue',
     'SCHEDULER_MEMORY_QUEUE' : 'scrapy.squeues.FifoMemoryQueue'
     }
@@ -61,24 +58,24 @@ class gfm_Spider(scrapy.Spider):
     links_to_follow = tile_links.extract()
 
     for link in links_to_follow:
-        urlcampsolid = link.replace('https://www.gofundme.com/', '')
+        urlcampsolid = link.replace('https://www.gofundme.com/f/', '')
         self.campzip[urlcampsolid] = myzip
     campzipcodes = pd.Series(self.campzip).to_frame()
-    trial = 1
+    trial = 2
     export_csv = campzipcodes.to_csv(r'campsbyzip{}.csv'.format(trial), index = True)
 
     for url in links_to_follow:
       yield response.follow(url = url,
                             callback = self.parse_by_zip)
 
-  def parse_donation_hist(self,response): #scrapes all donation history
+  def parse_donation_hist(self,response): #scrapes donation history
     #https://gateway.gofundme.com/web-gateway/v1/feed/helptheleague/donations?limit=20&offset=3&sort=recent
     data = json.loads(response.body)
     df = pd.DataFrame(data)
     references = (df['references'])
     donations = references[0]
     dfdonations = pd.DataFrame(donations)
-    print(self.donationhist)
+    #print(self.donationhist)
 
     urlsolid = response.request.url  #this grabs the current url you are on
     urlsolid_ext = urlsolid.replace('https://gateway.gofundme.com/web-gateway/v1/feed/', '') 
@@ -97,15 +94,16 @@ class gfm_Spider(scrapy.Spider):
     if response.meta['has_next'] == False: 
       self.numchecked += 1
       print("this one is done, and total= " + str(self.numchecked))
-
-    if self.numchecked == self.numcamps: 
-      print("sending csv")
       export_csv = self.donationhist.to_csv(r'donationhistory.csv', index = None, header=True)
+
+    #if self.numchecked == self.numcamps: 
+      #print("sending csv")
+      #export_csv = self.donationhist.to_csv(r'donationhistory.csv', index = None, header=True)
 
     if response.meta['has_next'] == True:
         self.offsetdict[urlsolid_ext_ext] += 100 #offset should be the same as whatever the limit is 
         offset = self.offsetdict[urlsolid_ext_ext]
-        offlim = 'https://gateway.gofundme.com/web-gateway/v1/feed/{}/donations?limit=100&offset={}&sort=recent'.format(urlsolid_ext_ext, self.offset)
+        offlim = 'https://gateway.gofundme.com/web-gateway/v1/feed/{}/donations?limit=100&offset={}&sort=recent'.format(urlsolid_ext_ext, offset) #used to be self.offset
         yield response.follow(url = offlim,
                           callback = self.parse_donation_hist,
                           meta = response.meta)
@@ -152,7 +150,7 @@ class gfm_Spider(scrapy.Spider):
     goalamt = response.xpath('//span[contains(@class, "text-stat-title")]/text()')
     goalamt_ext = [l.strip() for l in goalamt.extract()]
 
-    myzip = self.campzip[urlsolid_ext.casefold()]
+    #myzip = self.campzip[urlsolid_ext.casefold()]
 
     info = [urlsolid_ext, camptitle_ext, category_ext, created_ext, terminated_ext, byline_ext, description_ext, description2_ext, description3_ext, nonprofit_ext, amtraised_ext, goalamt_ext] #byline_ext, created_ext, extra_ext, amtraised_ext, goalamt_ext, donorsamt_ext, sharesamt_ext]
     self.zipdict[urlsolid_ext] = info

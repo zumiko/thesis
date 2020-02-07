@@ -11,6 +11,8 @@ output: pdf_document
 ```{r}
 library(plm)
 library(xts)
+library(dplyr)
+library(texreg)
 ```
 
 
@@ -23,8 +25,14 @@ dhistpanel1 <- pdata.frame(dhistfe1, index = c("urlsolid", "createdxtsid"), drop
 anchorfe <- plm(amount ~ histavg, 
                     data = dhistpanel1, 
                     model = "within")
+anchorfe2 <- plm(amount ~ histavg + is_female + histavg*is_female, 
+                    data = dhistpanel1, 
+                    model = "within")
+anchorfe3 <- plm(amount ~ histavg + is_anonymous + histavg*is_anonymous, 
+                    data = dhistpanel1, 
+                    model = "within")
 summary(anchorfe)
-texreg(anchorfe)
+#texreg(list(anchorfe, anchorfe3))
 ```
 
 #use the Hausmann test phtest to determine whether fixed effects or random effects

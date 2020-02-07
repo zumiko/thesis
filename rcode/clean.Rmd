@@ -18,6 +18,8 @@ library(ggplot2)
 library(stringr)
 library(varhandle)
 library(tidyr)
+library(matrixStats)
+library(gender)
 ```
 
 ## Read in data 
@@ -57,14 +59,14 @@ zips <- zips %>%
 zips
 } 
 
-zip1 <- prepzip(zip1)
+zip2 <- prepzip(zip2)
 #zip2 <- prepzip(zip2)
 ```
 
 #Clean dhist
 ```{r}
 prepdhist <- function(dhist){ #switch to booleans, merge with zips
-dhist <- left_join(dhist, zip1, by = 'urlsolid') #yikes this doesnt look like it is working, fix it 
+dhist <- left_join(dhist, zip2, by = 'urlsolid') #yikes this doesnt look like it is working, fix it 
 dhist$is_anonymous <- str_detect(dhist$is_anonymous, "True")
 dhist$verified <- str_detect(dhist$verified, "True")
 dhist$is_offline <- str_detect(dhist$is_offline, "True")
@@ -90,20 +92,36 @@ addgender <- function(dhist){ #add the gender based on first names by social sec
   genderdf$firstname <- genderdf$name
   genderdf <- distinct(genderdf) %>% select(-proportion_male, -proportion_female, -year_min, -year_max)
   finaldf <- left_join(dfull, genderdf, by = "firstname") 
-  finaldf$isfemale <- as.integer(str_detect(finialdf$gender, "female")) #get boolean for is female
+  finaldf$isfemale <- as.integer(str_detect(finaldf$gender, "female")) #get boolean for is female
   finaldf 
 }
+
+leaddate <- function(dhist){
+  dhist <- dhist %>% mutate(createdxtslead = lead(createdxts,n = 1L))
+}
+
+fixdate <- function(date){ 
+  z <- as.POSIXct(date, usetz = TRUE, format="%Y-%m-%dT%H:%M:%OS")  #look at ?strptime for documentation %Y-%m-%dT%H:%M:%S
+z}
+
+
 
 ```
 
 ```{r}
-dhist1 <- prepdhist(dhist1)
-dhist1 <- laglead(dhist1)
-dhist1 <- addgender(dhist1)
-
 dhist2 <- prepdhist(dhist2)
-dhist2 <-laglead(dhist2)
-head(dhist1, 30)
+dhist2 <- laglead(dhist2)
+dhist2 <- addgender(dhist2)
+dhist2 <- dhist2 %>% mutate(createdxts = fixdate(created_at))
+dhist2 <- leaddate(dhist2)
+head(dhist2, 30)
+
+varian <- function(lag1, lag2, lag3, lag4, lag5, histavgs){
+  variance <- ((lag1 - histavgs)**2  + (lag2 - histavgs)**2 + (lag3 - histavgs)**2 (lag4 - histavgs)**2 + (lag5 - histavgs)^2)/5
+  variance
+}
+
+
 ```
 
 ### Clean campattributes 
@@ -146,6 +164,13 @@ campatt1 <- cleanattributes(campatt1)
 #campatt2 <- cleanattributes(campatt2)
 ```
 
+#Merge important parts of dhist and campatt
+
+```{r}
+campatt1short <- campatt1 %>% select(urlsolid, category, created, terminated, nonprofit, amtraised, goalamt, progress)
+dhist2short <- dhist2 %>% select(-lag1, lag2, lag3, lag4, lag5, alag1, alag2, alag3, alag4, alag5, lead1, lead2, lead3, lead4, lead5, futavg)
+dfc1 <- left_join(dhist1short, campatt1short, by = "urlsolid")
+```
 
 
 #checking that it looks right below 
@@ -162,6 +187,38 @@ dfcc2 <- dfcc %>% filter(numdonations %% 100 == 0)
 nrow(dfc2)
 nrow(dfcc2)
 head(dfc2,200)
+
+```
+
+
+```{r}
+pathhisttry <- "/Users/CJ/Desktop/thesisdata/p1/donationhistory.csv" 
+dhisttry <- read.csv(pathhisttry)
+dhisttry <- tbl_df(dhisttry)
+tryatt<- "/Users/CJ/Desktop/thesisdata/p1/campattributes.csv" 
+dhisttryatt <- read.csv(tryatt)
+dhisttryatt <- tbl_df(dhisttryatt)
+dfc <- dhisttry %>% group_by(urlsolid) %>% summarise(numdonations = n_distinct(donation_id))
+nrow(dhisttryatt)
+nrow(dfc)
+nrow(dhisttry)
+head(dfc2,200)
+dfc2 <- dfc %>% filter(numdonations >= 1000) 
+
+
+```
+
+
+
+```{r}
+sdp<- "/Users/CJ/Desktop/thesisdata/p1/campsbyzip1.csv" 
+sdd <- read.csv(sdp)
+sdd<- tbl_df(sdd)
+head(sdd)
+nrow(sdd)
+sddf <- sdd %>% group_by(X0) %>% summarise(total = n_distinct(X)) %>% filter(total >= 20)
+head(sddf)
+nrow(sddf)
 
 ```
 

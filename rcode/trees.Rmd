@@ -52,7 +52,7 @@ lagsrt <- apply(dhist2short,1, lagsort)
 lagsrt <- as.data.frame(lapply(lagsrt,unlist))
 nrow(dhist2short)
 nrow(max)
-dhist2more <- cbind.data.frame(dhist2, max)
+dhist2more <- cbind.data.frame(na.omit(dhist2), max)
 dhist2more <- cbind.data.frame(dhist2more, min)
 head(dhist2more,10)
 ```
@@ -73,12 +73,45 @@ now time for the basic tree model
 ```{r}
 library(tree)
 library(gbm)
+library(randomForest)
 ```
 
 
 
 ```{r}
-treebasic= tree(amount ~. , data = dhist2tree)
+dhist2tree <- dhist2tree %>% mutate(amount = unlist(amount))
+treebasic <-  tree(formula = amount ~. , data = dhist2tree)
+summary(treebasic)
+plot(treebasic)
+text(treebasic ,pretty=0)
 ```
 
+```{r}
+treeboost = gbm(formula = amount ~. , data = dhist2tree,distribution=
+"gaussian",n.trees=5000, interaction.depth = 4)
+summary(treeboost)
+par(mfrow=c(1,2))
+plot(treeboost ,i="d2") 
+plot(treeboost,i="d1")
+```
+
+
+```{r}
+bagtree =randomForest(amount ~. ,data = dhist2tree,
+mtry=5,importance =TRUE)
+```
+
+#Now let's see how they compare and preform on a test data set 
+
+
+
+
+
+
+#Now let's try adding in the differences 
+
+```{r}
+head(dhist2tree)
+median <-
+```
 

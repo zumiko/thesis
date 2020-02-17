@@ -1,0 +1,51 @@
+---
+title: "summary stats"
+author: "Claire Jellison"
+date: "12/27/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+```
+
+
+```{r}
+nrow(campatt1)
+nrow(dhist1)
+mean(dhist1$amount)
+median(dhist1$amount)
+mean(as.integer(dhist1$is_anonymous))#hm why no work? 
+mean(campatt1$nonprofit)
+mean(na.omit(dhist1$isfemale))
+```
+
+```{r}
+anonhist1 <- dhist1 %>% filter(is_anonymous == 1)
+mean(anonhist1$amount)
+median(anonhist1$amount)
+```
+
+
+```{r}
+campatt1 <- na.omit(campatt1) %>% mutate(endprog = (amtraised/goalamt)*100)
+```
+
+```{r}
+ggplot(campatt1, aes(x = endprog)) + geom_histogram(aes(y=..density..), colour="black", fill="white") +
+ geom_density(alpha=.2, fill="#FF6666") + xlim(0,150) 
+```
+
+```{r}
+ggplot(dhist1, aes(x = amount)) + geom_histogram(binwidth = 5) + xlim(0,150) 
+```
+
+```{r}
+ggplot(dhist1, aes(x = amount, color = gender))  +
+  geom_histogram(binwidth = 5, fill= "white", alpha=0.5, position="identity") + xlim(0,150) 
+```
+

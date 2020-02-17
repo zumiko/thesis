@@ -61,20 +61,41 @@ summary(alllm)
 ```
 
 
-```{r}
-#try stuff with median
-medianlm <- lm(amount ~ mediana, data = dhist1)
-summary(medianlm)
-```
-
 
 ```{r}
 head(dhist2short)
 dhist2short <- dhist2short %>% mutate(timeafter = difftime(createdxtslead, createdxts, units = "secs"))
+dhist2short <- dhist2short %>% mutate(dow = weekdays(createdxts))
+dhist2short <- dhist2short %>% mutate(month = months(createdxts))
 
 dg <- dhist2short %>% filter(urlsolid == "CarlieTy")	
 ggplot(dg, aes(x=timeafter)) + geom_histogram() + xlim(0,10000)
 ```
 
+```{r}
+#reg on time after
+timeafterlm <- lm(amount ~ timeafter*histavg + gender*histavg + anonpropscreen*histavg + dow + month, data = dhist2short)
+summary(timeafterlm)
+```
 
+#trying now for median 
+
+
+```{r}
+medianlm <- lm(amount ~ d3, data = dhist2tree)
+summary(medianlm)
+maxlm <- lm(amount ~ d5, data = dhist2tree)
+summary(maxlm)
+alllm <- lm(amount ~ d1 + d2 + d3 + d4 + d5, data = dhist2tree)
+summary(alllm)
+allinterlm <- lm(amount ~ d1*d2 + d1*d3 + d1*d4 + d1*d5 + d2*d3 + d2*d4 + d2*d5 + d3*d4 + d3*d5 + d4*d5, data = dhist2tree)
+summary(allinterlm)
+dhist2tree <- dhist2tree %>% mutate(d12 = d2 - d1) %>% mutate(d23 = d3 - d2) %>% mutate(d34 = d4 - d3) %>% mutate(d45 = d5 -d4)
+distlm <- lm(amount ~ d1 + d12 + d23 + d34 + d45, data = dhist2tree)
+distlm2 <- lm(amount ~ d1*d12 + d12 + d23 + d34 + d45, data = dhist2tree)
+summary(distlm2)
+texreg(distlm)
+plot(distlm)
+texreg(allinterlm)
+```
 

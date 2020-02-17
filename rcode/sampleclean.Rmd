@@ -18,9 +18,11 @@ library(ggplot2)
 library(stringr)
 library(varhandle)
 library(tidyr)
+library(gender)
 ```
 TODO: 
 look at what happens when no money raised so far 
+-- ah have resolved this the only problem was that the missing ones have no donations
 
 ## Read in data 
 ```{r}
@@ -68,12 +70,29 @@ fulldf$alag5 <- as.integer(as.logical(fulldf$alag5))
 fulldf <- fulldf %>% mutate(histavg = (lag1 + lag2 + lag3 + lag4 + lag5)/5) %>% mutate(anonpropscreen = (alag1 + alag2 + alag3 + alag4 + alag5)/5)  %>% mutate(futavg = (lead1 + lead2 + lead3 + lead4 + lead5)/5)
 fulldf }
 
+
+#nts: had to run devtools::install_github("ropensci/genderdata") 
+addgender <- function(dhist){ #add the gender based on first names by social security 
+  firstname <- word(dhist$name, 1)
+  firstname<- as.data.frame(firstname)
+  dfull <- bind_cols(dhist, firstname)
+  genderdf <- gender(as.character(dfull$firstname), method = "ssa") 
+  genderdf$firstname <- genderdf$name
+  genderdf <- distinct(genderdf) %>% select(-proportion_male, -proportion_female, -year_min, -year_max)
+  finaldf <- left_join(dcheck, genderdf, by = "firstname") 
+  finaldf 
+  
+}
+
 ```
+
+
 
 ```{r}
 dhist <- prepdhist(dhist)
 dhist <-laglead(dhist)
 ```
+
 
 ### Clean campattributes 
 
@@ -113,7 +132,6 @@ cleanattributes <- function(dfatt){
 ```{r}
 campattributes <- cleanattributes(campattributes)
 ```
-
 
 
 

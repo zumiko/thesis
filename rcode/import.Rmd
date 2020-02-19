@@ -23,25 +23,44 @@ library(stringr)
 pathhist2 <- "/Users/CJ/Desktop/thesisdata/p2/donationhistory.csv" 
 pathzip2 <- "/Users/CJ/Desktop/thesisdata/p2/campsbyzip2.csv" 
 pathattributes2 <- "/Users/CJ/Desktop/thesisdata/p2/campattributes.csv" 
-#pathhist2 <- "/Users/CJ/Desktop/thesisdata/part2/donationhist.csv" 
-#pathzip2 <- "/Users/CJ/Desktop/thesisdata/part2/campsbyzip2.csv" 
-#pathattributes2 <- "/Users/CJ/Desktop/thesisdata/part2/campattributes.csv" 
 
 dhist2 <- read.csv(pathhist2)
 dhist2 <- tbl_df(dhist2)
-#dhist2 <- read.csv(pathhist2)
-#dhist2 <- tbl_df(dhist2)
 
 zip2 <- read.csv(pathzip2)
 zip2 <- tbl_df(zip2)
-#zip2 <- read.csv(pathzip2)
-#zip2 <- tbl_df(zip2)
 
 campatt2 <- read.csv(pathattributes2)
 campatt2<- tbl_df(campatt2)
+
+```
+
+## Read in data 
+```{r}
+pathhist1 <- "/Users/CJ/Desktop/thesisdata/part1/donationhist.csv" 
+pathzip1 <- "/Users/CJ/Desktop/thesisdata/part1/campsbyzip1.csv" 
+pathattributes1 <- "/Users/CJ/Desktop/thesisdata/part1/campattributes.csv" 
+pathhist2 <- "/Users/CJ/Desktop/thesisdata/part2/donationhist.csv" 
+#pathzip2 <- "/Users/CJ/Desktop/thesisdata/part2/campsbyzip2.csv" 
+#pathattributes2 <- "/Users/CJ/Desktop/thesisdata/part2/campattributes.csv" 
+
+dhist1 <- read.csv(pathhist1)
+dhist1 <- tbl_df(dhist1)
+dhist2 <- read.csv(pathhist2)
+dhist2 <- tbl_df(dhist2)
+
+zip1 <- read.csv(pathzip1)
+zip1 <- tbl_df(zip1)
+#zip2 <- read.csv(pathzip2)
+#zip2 <- tbl_df(zip2)
+
+campatt1 <- read.csv(pathattributes1)
+campatt1<- tbl_df(campatt1)
 #campatt2<- read.csv(pathattributes2)
 #campatt2<- tbl_df(campatt2)
+
 ```
+
 
 
 ```{r}

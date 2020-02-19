@@ -22,31 +22,6 @@ library(matrixStats)
 library(gender)
 ```
 
-## Read in data 
-```{r}
-pathhist1 <- "/Users/CJ/Desktop/thesisdata/part1/donationhist.csv" 
-pathzip1 <- "/Users/CJ/Desktop/thesisdata/part1/campsbyzip1.csv" 
-pathattributes1 <- "/Users/CJ/Desktop/thesisdata/part1/campattributes.csv" 
-pathhist2 <- "/Users/CJ/Desktop/thesisdata/part2/donationhist.csv" 
-#pathzip2 <- "/Users/CJ/Desktop/thesisdata/part2/campsbyzip2.csv" 
-#pathattributes2 <- "/Users/CJ/Desktop/thesisdata/part2/campattributes.csv" 
-
-dhist1 <- read.csv(pathhist1)
-dhist1 <- tbl_df(dhist1)
-dhist2 <- read.csv(pathhist2)
-dhist2 <- tbl_df(dhist2)
-
-zip1 <- read.csv(pathzip1)
-zip1 <- tbl_df(zip1)
-#zip2 <- read.csv(pathzip2)
-#zip2 <- tbl_df(zip2)
-
-campatt1 <- read.csv(pathattributes1)
-campatt1<- tbl_df(campatt1)
-#campatt2<- read.csv(pathattributes2)
-#campatt2<- tbl_df(campatt2)
-
-```
 
 #Clean zips 
 ```{r}
@@ -66,7 +41,7 @@ zip2 <- prepzip(zip2)
 #Clean dhist
 ```{r}
 prepdhist <- function(dhist){ #switch to booleans, merge with zips
-dhist <- left_join(dhist, zip2, by = 'urlsolid') #yikes this doesnt look like it is working, fix it 
+dhist <- left_join(dhist, zip2, by = 'urlsolid') 
 dhist$is_anonymous <- str_detect(dhist$is_anonymous, "True")
 dhist$verified <- str_detect(dhist$verified, "True")
 dhist$is_offline <- str_detect(dhist$is_offline, "True")
@@ -74,14 +49,32 @@ dhist
 }
 
 laglead <- function(fulldf){ #add the lags and leads
-fulldf <- fulldf %>% group_by(as.factor(urlsolid)) %>% arrange(created_at) %>% mutate(lag1 = lag(amount,n = 1L), lag2 = lag(amount,n = 2L), lag3= lag(amount,n = 3L), lag4= lag(amount,n = 4L), lag5= lag(amount,n = 5L), alag1 = lag(is_anonymous,n = 1L), alag2 = lag(is_anonymous,n = 2L), alag3= lag(is_anonymous,n = 3L), alag4= lag(is_anonymous,n = 4L), alag5= lag(is_anonymous,n = 5L), lead1 = lead(amount,n = 1L), lead2 = lead(amount,n = 2L), lead3= lead(amount,n = 3L), lead4= lead(amount,n = 4L),lead5= lead(amount,n = 5L)) 
+fulldf <- fulldf %>% group_by(as.factor(urlsolid)) %>% 
+  arrange(created_at) %>% 
+  mutate(lag1 = lag(amount,n = 1L), lag2 = lag(amount,n = 2L), lag3= lag(amount,n = 3L), lag4= lag(amount,n = 4L), lag5= lag(amount,n = 5L), lag6 = lag(amount,n = 6L), lag7 = lag(amount,n = 7L), lag8= lag(amount,n = 8L), lag9= lag(amount,n = 9L), lag10= lag(amount,n = 10L), alag1 = lag(is_anonymous,n = 1L), alag2 = lag(is_anonymous,n = 2L), alag3= lag(is_anonymous,n = 3L), alag4= lag(is_anonymous,n = 4L), alag5= lag(is_anonymous,n = 5L), alag6 = lag(is_anonymous,n = 6L), alag7 = lag(is_anonymous,n = 7L), alag8= lag(is_anonymous,n = 8L), alag9= lag(is_anonymous,n = 9L), alag10= lag(is_anonymous,n = 10L), glag1 = lag(is_female,n = 1L), glag2 = lag(is_female,n = 2L), glag3= lag(is_female,n = 3L), glag4= lag(is_female,n = 4L), glag5= lag(is_female,n = 5L), glag6 = lag(is_female,n = 6L), glag7 = lag(is_female,n = 7L), glag8= lag(is_female,n = 8L), glag9= lag(is_female,n = 9L), glag10= lag(is_female,n = 10L))
+
 fulldf$alag1 <- as.integer(as.logical(fulldf$alag1)) #switches from true/false to 0/1
 fulldf$alag2 <- as.integer(as.logical(fulldf$alag2))
 fulldf$alag3 <- as.integer(as.logical(fulldf$alag3))
 fulldf$alag4 <- as.integer(as.logical(fulldf$alag4))
 fulldf$alag5 <- as.integer(as.logical(fulldf$alag5))
-fulldf <- fulldf %>% mutate(histavg = (lag1 + lag2 + lag3 + lag4 + lag5)/5) %>% mutate(anonpropscreen = (alag1 + alag2 + alag3 + alag4 + alag5)/5)  %>% mutate(futavg = (lead1 + lead2 + lead3 + lead4 + lead5)/5)
-fulldf }
+fulldf$alag6 <- as.integer(as.logical(fulldf$alag6))
+fulldf$alag7 <- as.integer(as.logical(fulldf$alag7))
+fulldf$alag8 <- as.integer(as.logical(fulldf$alag8))
+fulldf$alag9 <- as.integer(as.logical(fulldf$alag9))
+fulldf$alag10 <- as.integer(as.logical(fulldf$alag10))
+
+fulldf <- fulldf %>% mutate(histavg = case_when(
+  lagtype == "five" ~ (lag1 + lag2 + lag3 + lag4 + lag5)/5, 
+  lagtype == "ten" | lagtype == "unknown" ~ (lag1 + lag2 + lag3 + lag4 + lag5 + lag6 + lag7 + lag8 + lag9 + lag10)/10)) %>%
+  mutate(anonprop = case_when(
+  lagtype == "five" ~ (alag1 + alag2 + alag3 + alag4 + lag5)/5, 
+  lagtype == "ten" | lagtype == "unknown" ~ (alag1 + alag2 + alag3 + alag4 + alag5 + alag6 + alag7 + alag8 + alag9 + alag10)/10))
+
+fulldf <- fulldf %>% select( -lag6, -lag7, -lag8, -lag9, -lag10,-alag2, - alag3, - alag4, - alag5, -alag6, -alag7, -alag8, -alag9, -alag10, -glag2, - glag3, - glag4, - glag5, -glag6, -glag7, -glag8, -glag9, -glag10 )
+  
+fulldf 
+}
 
 #nts: had to run devtools::install_github("ropensci/genderdata") 
 addgender <- function(dhist){ #add the gender based on first names by social security 
@@ -92,7 +85,7 @@ addgender <- function(dhist){ #add the gender based on first names by social sec
   genderdf$firstname <- genderdf$name
   genderdf <- distinct(genderdf) %>% select(-proportion_male, -proportion_female, -year_min, -year_max)
   finaldf <- left_join(dfull, genderdf, by = "firstname") 
-  finaldf$isfemale <- as.integer(str_detect(finaldf$gender, "female")) #get boolean for is female
+  finaldf$is_female <- as.integer(str_detect(finaldf$gender, "female")) #get boolean for is female
   finaldf 
 }
 
@@ -104,25 +97,33 @@ fixdate <- function(date){
   z <- as.POSIXct(date, usetz = TRUE, format="%Y-%m-%dT%H:%M:%OS")  #look at ?strptime for documentation %Y-%m-%dT%H:%M:%S
 z}
 
+checkdateforlags <- function(dhist){  #nice this works
+  dhist <- dhist %>%
+  mutate(lagtype = case_when(
+    createdxts <  ymd_hms("2019-06-01 01:00:00") & createdxts > ymd_hms("2016-06-01 01:00:00")  ~ "unknown",
+    createdxts <  ymd_hms("2016-06-01 01:00:00")   ~ "ten",
+    createdxts >  ymd_hms("2019-06-01 01:00:00")  ~ "five"
+  ))
+}
 
+cleandhist <- function(dhist){
+  dhist <- prepdhist(dhist)
+  dhist <- dhist %>% mutate(createdxts = fixdate(created_at))
+  dhist <- leaddate(dhist)
+  dhist <- checkdateforlags(dhist)
+  dhist <- addgender(dhist)
+  dhist <- laglead(dhist)
+}
 
 ```
 
 ```{r}
-dhist2 <- prepdhist(dhist2)
-dhist2 <- laglead(dhist2)
-dhist2 <- addgender(dhist2)
-dhist2 <- dhist2 %>% mutate(createdxts = fixdate(created_at))
-dhist2 <- leaddate(dhist2)
-head(dhist2, 30)
+dhist2 <- cleandhist(dhist2)
 
-varian <- function(lag1, lag2, lag3, lag4, lag5, histavgs){
-  variance <- ((lag1 - histavgs)**2  + (lag2 - histavgs)**2 + (lag3 - histavgs)**2 (lag4 - histavgs)**2 + (lag5 - histavgs)^2)/5
-  variance
-}
-
+head(dhist2,20)
 
 ```
+
 
 ### Clean campattributes 
 
@@ -153,23 +154,24 @@ cleanattributes <- function(dfatt){
   dfatt$amtraised <- as.integer(dfatt$amtraised)
   dfatt$terminatedbool <- str_detect(dfatt$terminated, "donations") #this doesn't work? DOUBLE CHECK
   dfatt$nonprofit <- str_detect(dfatt$nonprofit., "Registered")
-  dfatt<- dfatt%>% mutate(progress = amtraised/goalamt)
+  dfatt<- dfatt%>% mutate(progress = amtraised/goalamt) %>% rename(urlsolid = urlname)
 }
 
 
 ```
 
 ```{r}
-campatt1 <- cleanattributes(campatt1)
-#campatt2 <- cleanattributes(campatt2)
+#campatt1 <- cleanattributes(campatt1)
+campatt2 <- cleanattributes(campatt2)
+head(campatt2)
 ```
 
 #Merge important parts of dhist and campatt
 
 ```{r}
-campatt1short <- campatt1 %>% select(urlsolid, category, created, terminated, nonprofit, amtraised, goalamt, progress)
-dhist2short <- dhist2 %>% select(-lag1, lag2, lag3, lag4, lag5, alag1, alag2, alag3, alag4, alag5, lead1, lead2, lead3, lead4, lead5, futavg)
-dfc1 <- left_join(dhist1short, campatt1short, by = "urlsolid")
+campatt2short <- campatt2 %>% select(urlsolid, category, created, terminated, nonprofit, amtraised, goalamt, progress)
+dfc2 <- left_join(dhist2, campatt2short, by = "urlsolid")
+head(dfc2,90)
 ```
 
 

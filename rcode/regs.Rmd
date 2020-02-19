@@ -13,68 +13,51 @@ library(dplyr)
 #https://drsimonj.svbtle.com/visualising-residuals for looking at residuals
 ```{r}
 #mean reg
-meanlm <- lm(amount ~ histavg, data = dhist1)
-meanlm2 <- lm(amount ~ histavg + is_anonymous + is_anonymous*histavg, data = dhist1)
-meanlm3 <- lm(amount ~ histavg + is_female+ isfemale*histavg, data = dhist1)
-meanlm4 <- lm(amount ~ histavg + category + histavg*category, data = dfc1)
-summary(meanlm4)
-plot(meanlm, which=1, col=c("blue"), xlim=c(0,1000))
-d <- dhist1 %>% select(amount, histavg, urlsolid) %>% filter(histavg >= 0) #exclude those with no aggregate anchor
-d$predicted <- predict(meanlm)  #get predicted vals
-d$residuals <- residuals(meanlm) #get residuals
-d<- d %>% filter(urlsolid == "1axvo")
-ggplot(d, aes(x = histavg, y = amount)) +  
-  geom_point() + xlim(0, 200) + ylim(0, 300) + 
-  geom_point(aes(y = predicted), shape = 1) + 
-  geom_segment(aes(xend = histavg, yend = predicted), alpha = .2) 
-#texreg(list(meanlm, meanlm2, meanlm3))
+dhist2 <- dhist2 %>% filter(lagtype != "unknown")
+meanlm <- lm(amount ~ histavg + lagtype, data = dhist2)
+meanlm2 <- lm(amount ~ histavg + is_anonymous + is_anonymous*histavg + lagtype, data = dhist2)
+meanlm3 <- lm(amount ~ histavg + is_female+ is_female*histavg + lagtype, data = dhist2)
+meanlm4 <- lm(amount ~ histavg + is_female*histavg + is_anonymous*histavg + lagtype, data = dhist2)
+summary(meanlm)
+#plot(meanlm, which=1, col=c("blue"), xlim=c(0,1000))
+#d <- dhist1 %>% select(amount, histavg, urlsolid) %>% filter(histavg >= 0) #exclude those with no aggregate anchor
+#d$predicted <- predict(meanlm)  #get predicted vals
+#d$residuals <- residuals(meanlm) #get residuals
+#d<- d %>% filter(urlsolid == "1axvo")
+#ggplot(d, aes(x = histavg, y = amount)) +  
+  #geom_point() + xlim(0, 200) + ylim(0, 300) + 
+  #geom_point(aes(y = predicted), shape = 1) + 
+  #geom_segment(aes(xend = histavg, yend = predicted), alpha = .2) 
+texreg(list(meanlm, meanlm2, meanlm3))
 #texreg(meanlm4, fontsize = "tiny")
 ```
 
-```{r}
-#this reg takes into account the seed money 
-meanseedlm <- lm(amount ~ percentraised, data = dfc1)
-summary(meanseedlm)
-#texreg(meanseedlm)
-```
 
 
 ```{r}
 #anon reg
-anonlm <- glm(is_anonymous ~ anonpropscreen, data = dhist1, family = "binomial")
+anonlm <- glm(is_anonymous ~ anonprop, data = dhist2, family = "binomial")
 summary(anonlm)
 texreg(anonlm)
 ```
 
 ```{r}
 #gender reg 
-genderlm <- lm(amount ~ gender, data = dhist1)
+genderlm <- lm(amount ~ gender, data = dhist2)
 summary(genderlm)
 texreg(genderlm)
 ```
 
 ```{r}
 #combo 
-alllm <- lm(amount ~ histavg + anonpropscreen +  gender, data = dhist1, family = "binomial")
+alllm <- lm(amount ~ histavg + anonprop +  gender, data = dhist2, family = "binomial")
 summary(alllm)
 #texreg(alllm)
 ```
 
-
-
-```{r}
-head(dhist2short)
-dhist2short <- dhist2short %>% mutate(timeafter = difftime(createdxtslead, createdxts, units = "secs"))
-dhist2short <- dhist2short %>% mutate(dow = weekdays(createdxts))
-dhist2short <- dhist2short %>% mutate(month = months(createdxts))
-
-dg <- dhist2short %>% filter(urlsolid == "CarlieTy")	
-ggplot(dg, aes(x=timeafter)) + geom_histogram() + xlim(0,10000)
-```
-
 ```{r}
 #reg on time after
-timeafterlm <- lm(amount ~ timeafter*histavg + gender*histavg + anonpropscreen*histavg + dow + month, data = dhist2short)
+timeafterlm <- lm(amount ~ timeafter*histavg + gender*histavg + anonpropscreen*histavg + dow + month, data = dhist2tree)
 summary(timeafterlm)
 ```
 

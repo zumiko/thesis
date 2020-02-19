@@ -30,7 +30,10 @@ lagsort<- function(lagrow){
 
 
 ```{r}
-dhist2short <- na.omit(dhist2) %>% ungroup(as.factor(urlsolid)) %>% select(lag1,lag2,lag3,lag4,lag5)
+dhist2short <- na.omit(dhist2) %>%
+  ungroup(as.factor(urlsolid)) %>% 
+  filter(lagtype == "five") %>% 
+  select(lag1,lag2,lag3,lag4,lag5) 
 
 
 lagsrt <- apply(dhist2short,1, lagsort) 
@@ -43,30 +46,30 @@ dhist2short$d4 <- tlagsrt[,4]
 dhist2short$d5 <- tlagsrt[,5]
 head(dhist2short)
 
+#put them in order of smallest to greatest 
+#d_1, d_2, d_3, d_4, d_5 
 
-max <- apply(dhist2short,1,max) 
-max <- as.data.frame(max)
-min <- apply(dhist2short,1,min) 
-min <- as.data.frame(min)
-lagsrt <- apply(dhist2short,1, lagsort) 
-lagsrt <- as.data.frame(lapply(lagsrt,unlist))
-nrow(dhist2short)
-nrow(max)
-dhist2more <- cbind.data.frame(na.omit(dhist2), max)
-dhist2more <- cbind.data.frame(dhist2more, min)
-head(dhist2more,10)
-```
-
-
-put them in order of smallest to greatest 
-d_1, d_2, d_3, d_4, d_5 
-
-```{r}
-dhist2omit <- na.omit(dhist2) %>% ungroup(as.factor(urlsolid)) %>% select(amount)
+dhist2omit <- na.omit(dhist2) %>%
+  ungroup(as.factor(urlsolid)) %>%
+  filter(lagtype == "five") %>% 
+  select(amount)
 dhist2tree <- dhist2short
 dhist2tree$amount <- dhist2omit
 
+
+#max <- apply(dhist2short,1,max) 
+#max <- as.data.frame(max)
+#min <- apply(dhist2short,1,min) 
+#min <- as.data.frame(min)
+#lagsrt <- apply(dhist2short,1, lagsort) 
+#lagsrt <- as.data.frame(lapply(lagsrt,unlist))
+#dhist2more <- cbind.data.frame(na.omit(dhist2), max)
+#dhist2more <- cbind.data.frame(dhist2more, min)
+#head(dhist2more,10)
 ```
+
+
+
 
 now time for the basic tree model
 
@@ -80,6 +83,7 @@ library(randomForest)
 
 ```{r}
 dhist2tree <- dhist2tree %>% mutate(amount = unlist(amount))
+dhist2tree <- dhist2tree %>% select(-lag1, -lag2, -lag3, -lag4, -lag5)
 treebasic <-  tree(formula = amount ~. , data = dhist2tree)
 summary(treebasic)
 plot(treebasic)
@@ -105,13 +109,4 @@ mtry=5,importance =TRUE)
 
 
 
-
-
-
-#Now let's try adding in the differences 
-
-```{r}
-head(dhist2tree)
-median <-
-```
 

@@ -30,17 +30,26 @@ lagsort<- function(lagrow){
 
 
 ```{r}
-dhist2short <- dhist2 %>% ungroup(as.factor(urlsolid)) %>% select(lag1,lag2,lag3,lag4,lag5)
-singlerow <- dhist2short[6,]
+dhist2short <- na.omit(dhist2) %>% ungroup(as.factor(urlsolid)) %>% select(lag1,lag2,lag3,lag4,lag5)
 
-lagsrt <- apply(singlerow,1, lagsort) 
+
+lagsrt <- apply(dhist2short,1, lagsort) 
+tlagsrt <- t(lagsrt)
+tlagsrt <- as.data.frame(tlagsrt)
+dhist2short$d1 <- tlagsrt[,1]
+dhist2short$d2 <- tlagsrt[,2]
+dhist2short$d3 <- tlagsrt[,3]
+dhist2short$d4 <- tlagsrt[,4]
+dhist2short$d5 <- tlagsrt[,5]
+head(dhist2short)
+
 
 max <- apply(dhist2short,1,max) 
 max <- as.data.frame(max)
 min <- apply(dhist2short,1,min) 
 min <- as.data.frame(min)
 lagsrt <- apply(dhist2short,1, lagsort) 
-lagsrt <- as.data.frame(lagsrt)
+lagsrt <- as.data.frame(lapply(lagsrt,unlist))
 nrow(dhist2short)
 nrow(max)
 dhist2more <- cbind.data.frame(dhist2, max)
@@ -48,15 +57,28 @@ dhist2more <- cbind.data.frame(dhist2more, min)
 head(dhist2more,10)
 ```
 
-# algorithm 
-put them in order of smallest to greatest 
-a_1, a_2, a_3, a_4, a_5 
-then 
-compute a1 a12 a13 a14 a15 
-a2 a23 a 24 a25 
-a3 a34 a35 
-a4 a45
-a5
 
-so function needs to put them in order and then needs to 
+put them in order of smallest to greatest 
+d_1, d_2, d_3, d_4, d_5 
+
+```{r}
+dhist2omit <- na.omit(dhist2) %>% ungroup(as.factor(urlsolid)) %>% select(amount)
+dhist2tree <- dhist2short
+dhist2tree$amount <- dhist2omit
+
+```
+
+now time for the basic tree model
+
+```{r}
+library(tree)
+library(gbm)
+```
+
+
+
+```{r}
+treebasic= tree(amount ~. , data = dhist2tree)
+```
+
 

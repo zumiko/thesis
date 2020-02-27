@@ -18,8 +18,13 @@ meanlm <- lm(amount ~ histavg*lagtype, data = dfc)
 meanlm2 <- lm(amount ~ histavg*lagtype + is_anonymous*histavg , data = dfc)
 meanlm3 <- lm(amount ~ histavg*lagtype + is_female*histavg , data = dfc)
 meanlm4 <- lm(amount ~ histavg*lagtype + nonprofit*histavg, data = dfc)
-texreg(list(meanlm, meanlm2, meanlm3, meanlm4))
+texreg(list(meanlm, meanlm2, meanlm3))
 #texreg(meanlm4, fontsize = "tiny")
+```
+
+```{r}
+categorylm <- lm(amount ~ histavg*lagtype + category*histavg, data = dfc)
+texreg(categorylm)
 ```
 
 
@@ -31,12 +36,6 @@ summary(anonlm)
 texreg(anonlm)
 ```
 
-```{r}
-#gender reg 
-genderlm <- lm(amount ~ gender, data = dhist2)
-summary(genderlm)
-texreg(genderlm)
-```
 
 ```{r}
 #combo 
@@ -55,18 +54,17 @@ summary(timeafterlm)
 
 
 ```{r}
-medianlm <- lm(amount ~ d3, data = dhist2tree)
+medianlm <- lm(amount ~ d3, data = dhistsize)
 summary(medianlm)
-maxlm <- lm(amount ~ d5, data = dhist2tree)
+maxlm <- lm(amount ~ d5, data = dhistsize)
 summary(maxlm)
-alllm <- lm(amount ~ d1 + d2 + d3 + d4 + d5, data = dhist2tree)
+alllm <- lm(amount ~ d1 + d2 + d3 + d4 + d5, data = dhistsize)
 summary(alllm)
-allinterlm <- lm(amount ~ d1*d2 + d1*d3 + d1*d4 + d1*d5 + d2*d3 + d2*d4 + d2*d5 + d3*d4 + d3*d5 + d4*d5, data = dhist2tree)
+allinterlm <- lm(amount ~ d1*d2 + d1*d3 + d1*d4 + d1*d5 + d2*d3 + d2*d4 + d2*d5 + d3*d4 + d3*d5 + d4*d5 + is_female, data = dhistsize)
 summary(allinterlm)
-dhist2tree <- dhist2tree %>% mutate(d12 = d2 - d1) %>% mutate(d23 = d3 - d2) %>% mutate(d34 = d4 - d3) %>% mutate(d45 = d5 -d4)
-distlm <- lm(amount ~ d1 + d12 + d23 + d34 + d45, data = dhist2tree)
-distlm2 <- lm(amount ~ d1*d12 + d12 + d23 + d34 + d45, data = dhist2tree)
-summary(distlm2)
+dhistsize <- dhistsize %>% mutate(d12 = d2 - d1) %>% mutate(d23 = d3 - d2) %>% mutate(d34 = d4 - d3) %>% mutate(d45 = d5 -d4)
+distlm <- lm(amount ~ d1 + d12  +  d23 + d34  + d45, data = dhistsize)
+summary(distlm)
 texreg(distlm)
 plot(distlm)
 texreg(allinterlm)

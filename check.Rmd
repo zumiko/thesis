@@ -1,0 +1,33 @@
+---
+title: "check"
+author: "Claire Jellison"
+date: "2/26/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# okay so need to account for the discrepancy btwn zip2 and campatt2 - done! they all seem to have no campaign pages
+#then figure out discrepancy btwn campatt2 ad dhist2  - done! none of these seem to have donations
+
+```{r}
+nrow(zip2) - nrow(campatt2) #difference in number of camps
+missingcamps <- anti_join(zip2, campatt2, by = "X")
+missingcamps  #okay all of these campaigns lead to a campaign not found page so this seems fine
+```
+
+```{r}
+nrow(campatt2)
+dhist2check <- dhist2 %>% group_by(urlsolid) %>% summarise(donations = n())
+nrow(dhist2check)
+head(dhist2check)
+```
+
+```{r}
+campatt2 <- campatt2 %>% rename(urlsolid = urlname) 
+missingcamps2 <- anti_join(campatt2, dhist2check, by = "urlsolid")  
+missingcamps2
+```

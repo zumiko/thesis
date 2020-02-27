@@ -9,6 +9,11 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+TODO: 
+Fix that progress thing 
+Fix subtract the xts in clean up 
+
+
 
 ```{r}
 library(readr)
@@ -20,6 +25,7 @@ library(varhandle)
 library(tidyr)
 library(matrixStats)
 library(gender)
+library(lubridate)
 ```
 
 
@@ -34,14 +40,13 @@ zips <- zips %>%
 zips
 } 
 
-zip2 <- prepzip(zip2)
-#zip2 <- prepzip(zip2)
+zips <- prepzip(zips)
 ```
 
 #Clean dhist
 ```{r}
 prepdhist <- function(dhist){ #switch to booleans, merge with zips
-dhist <- left_join(dhist, zip2, by = 'urlsolid') 
+dhist <- left_join(dhist, zips, by = 'urlsolid') 
 dhist$is_anonymous <- str_detect(dhist$is_anonymous, "True")
 dhist$verified <- str_detect(dhist$verified, "True")
 dhist$is_offline <- str_detect(dhist$is_offline, "True")
@@ -118,10 +123,9 @@ cleandhist <- function(dhist){
 ```
 
 ```{r}
-dhist2 <- cleandhist(dhist2)
-
+dhist <- cleandhist(dhist)
 head(dhist2,20)
-
+nrow(dhist)
 ```
 
 
@@ -161,66 +165,16 @@ cleanattributes <- function(dfatt){
 ```
 
 ```{r}
-#campatt1 <- cleanattributes(campatt1)
-campatt2 <- cleanattributes(campatt2)
-head(campatt2)
+campatt <- cleanattributes(campatt)
+nrow(campatt)
 ```
 
 #Merge important parts of dhist and campatt
 
 ```{r}
-campatt2short <- campatt2 %>% select(urlsolid, category, created, terminated, nonprofit, amtraised, goalamt, progress)
-dfc2 <- left_join(dhist2, campatt2short, by = "urlsolid")
-head(dfc2,90)
+dfc <- left_join(dhist, campatt, by = "urlsolid")
+dfc <- dfc %>% select(-verified, -lag2, -lag3, -lag4, -lag5, -description1, -description2, -description3, -nonprofit.)
 ```
 
 
-#checking that it looks right below 
-
-```{r}
-nrow(dhist1)
-nrow(dhist2)
-dfc <- dhist1 %>% group_by(urlsolid) %>% summarise(numdonations = n_distinct(donation_id))
-dfcc <- dhist2 %>% group_by(urlsolid) %>% summarise(numdonations = n_distinct(donation_id))
-nrow(dfc)
-nrow(dfcc)
-dfc2 <- dfc %>% filter(numdonations %% 100 == 0) 
-dfcc2 <- dfcc %>% filter(numdonations %% 100 == 0) 
-nrow(dfc2)
-nrow(dfcc2)
-head(dfc2,200)
-
-```
-
-
-```{r}
-pathhisttry <- "/Users/CJ/Desktop/thesisdata/p1/donationhistory.csv" 
-dhisttry <- read.csv(pathhisttry)
-dhisttry <- tbl_df(dhisttry)
-tryatt<- "/Users/CJ/Desktop/thesisdata/p1/campattributes.csv" 
-dhisttryatt <- read.csv(tryatt)
-dhisttryatt <- tbl_df(dhisttryatt)
-dfc <- dhisttry %>% group_by(urlsolid) %>% summarise(numdonations = n_distinct(donation_id))
-nrow(dhisttryatt)
-nrow(dfc)
-nrow(dhisttry)
-head(dfc2,200)
-dfc2 <- dfc %>% filter(numdonations >= 1000) 
-
-
-```
-
-
-
-```{r}
-sdp<- "/Users/CJ/Desktop/thesisdata/p1/campsbyzip1.csv" 
-sdd <- read.csv(sdp)
-sdd<- tbl_df(sdd)
-head(sdd)
-nrow(sdd)
-sddf <- sdd %>% group_by(X0) %>% summarise(total = n_distinct(X)) %>% filter(total >= 20)
-head(sddf)
-nrow(sddf)
-
-```
 

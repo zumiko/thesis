@@ -17,9 +17,26 @@ library(ggplot2)
 library(stringr)
 ```
 
+
 ```{r}
 ## Read in data 
+pathhist1 <- "/Users/CJ/Desktop/thesisdata/p1/donationhistory.csv" 
+pathzip1 <- "/Users/CJ/Desktop/thesisdata/p1/campsbyzip3.csv" 
+pathattributes1 <- "/Users/CJ/Desktop/thesisdata/p1/campattributes.csv" 
 
+dhist1 <- read.csv(pathhist1)
+dhist1 <- tbl_df(dhist1)
+
+zip1 <- read.csv(pathzip1)
+zip1 <- tbl_df(zip1)
+
+campatt1 <- read.csv(pathattributes1)
+campatt1<- tbl_df(campatt1)
+```
+
+
+```{r}
+## Read in data 
 pathhist2 <- "/Users/CJ/Desktop/thesisdata/p2/donationhistory.csv" 
 pathzip2 <- "/Users/CJ/Desktop/thesisdata/p2/campsbyzip2.csv" 
 pathattributes2 <- "/Users/CJ/Desktop/thesisdata/p2/campattributes.csv" 
@@ -35,32 +52,39 @@ campatt2<- tbl_df(campatt2)
 
 ```
 
-## Read in data 
+
 ```{r}
-pathhist1 <- "/Users/CJ/Desktop/thesisdata/part1/donationhist.csv" 
-pathzip1 <- "/Users/CJ/Desktop/thesisdata/part1/campsbyzip1.csv" 
-pathattributes1 <- "/Users/CJ/Desktop/thesisdata/part1/campattributes.csv" 
-pathhist2 <- "/Users/CJ/Desktop/thesisdata/part2/donationhist.csv" 
-#pathzip2 <- "/Users/CJ/Desktop/thesisdata/part2/campsbyzip2.csv" 
-#pathattributes2 <- "/Users/CJ/Desktop/thesisdata/part2/campattributes.csv" 
+## Read in data 
+pathhist3 <- "/Users/CJ/Desktop/thesisdata/p3/donationhistory.csv" 
+pathzip3 <- "/Users/CJ/Desktop/thesisdata/p3/campsbyzip3.csv" 
+pathattributes3 <- "/Users/CJ/Desktop/thesisdata/p3/campattributes.csv" 
 
-dhist1 <- read.csv(pathhist1)
-dhist1 <- tbl_df(dhist1)
-dhist2 <- read.csv(pathhist2)
-dhist2 <- tbl_df(dhist2)
+dhist3 <- read.csv(pathhist3)
+dhist3 <- tbl_df(dhist3)
 
-zip1 <- read.csv(pathzip1)
-zip1 <- tbl_df(zip1)
-#zip2 <- read.csv(pathzip2)
-#zip2 <- tbl_df(zip2)
+zip3 <- read.csv(pathzip3)
+zip3 <- tbl_df(zip3)
 
-campatt1 <- read.csv(pathattributes1)
-campatt1<- tbl_df(campatt1)
-#campatt2<- read.csv(pathattributes2)
-#campatt2<- tbl_df(campatt2)
-
+campatt3 <- read.csv(pathattributes3)
+campatt3<- tbl_df(campatt3)
 ```
 
+```{r}
+## Read in data 
+
+pathhist4 <- "/Users/CJ/Desktop/thesisdata/p4/donationhistory.csv" 
+pathzip4 <- "/Users/CJ/Desktop/thesisdata/p4/campsbyzip4.csv" 
+pathattributes4 <- "/Users/CJ/Desktop/thesisdata/p4/campattributes.csv" 
+
+dhist4 <- read.csv(pathhist4)
+dhist4 <- tbl_df(dhist4)
+
+zip4 <- read.csv(pathzip4)
+zip4 <- tbl_df(zip4)
+
+campatt4 <- read.csv(pathattributes4)
+campatt4 <- tbl_df(campatt4)
+```
 
 
 ```{r}
@@ -72,32 +96,21 @@ lapply_read_csv_bind_rows <- function(path, pattern = "*.csv") {
 ```
 
 ```{r}
-nrow(dhist2)
-nrow(zip2)
-nrow(campatt2)
-head(campatt2, 200)
+#start with time series for donations
+nrow(dhist1)
+dhist1$is_anonymous <- as.factor(dhist1$is_anonymous)
+dhist1$is_offline <- as.factor(dhist1$is_offline)
+dhist1$verified <- as.factor(dhist1$verified)
+dhist <- bind_rows(dhist1, dhist2, dhist3, dhist4)
+
+#ok camp attributes time 
+campatt <- bind_rows(campatt1, campatt2, campatt3, campatt4)
+
+#zipcodes 
+zips <- bind_rows(zip1, zip2, zip3, zip4)
+nrow(zips)
 ```
 
 
-# okay so need to account for the discrepancy btwn zip2 and campatt2 - done! they all seem to have no campaign pages
-#then figure out discrepancy btwn campatt2 ad dhist2  - done! none of these seem to have donations
 
-```{r}
-nrow(zip2) - nrow(campatt2) #difference in number of camps
-missingcamps <- anti_join(zip2, campatt2, by = "X")
-missingcamps  #okay all of these campaigns lead to a campaign not found page so this seems fine
-```
-
-```{r}
-nrow(campatt2)
-dhist2check <- dhist2 %>% group_by(urlsolid) %>% summarise(donations = n_distinct(donation_id))
-nrow(dhist2check)
-head(dhist2check)
-```
-
-```{r}
-campatt2 <- campatt2 %>% rename(urlsolid = urlname) 
-missingcamps2 <- anti_join(campatt2, dhist2check, by = "urlsolid")  
-missingcamps2
-```
 

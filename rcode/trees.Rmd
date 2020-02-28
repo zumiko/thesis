@@ -9,6 +9,11 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r}
+library(dplyr)
+library(fBasics)
+```
+
 
 ```{r}
 lagsort<- function(lagrow){
@@ -17,9 +22,7 @@ lagsort<- function(lagrow){
   c <- lagrow[3] 
   d <- lagrow[4] 
   e <- lagrow[5]
-  
   vec <- c(a,b,c,d,e)
-  
   vec <- sort(vec, decreasing = FALSE) # so the are in increasing order 
   vec
 }
@@ -33,6 +36,11 @@ dhistsize <- na.omit(dhist) %>%
   filter(lagtype == "five") %>% 
   select(lag1,lag2,lag3,lag4,lag5) 
 
+
+variance <- apply(dhistsize, 1, var)
+skew <- apply(dhistsize, 1, skewness)
+dhistsize$variance <- variance
+dhistsize$skewness <- skew
 
 lagsrt <- apply(dhistsize,1, lagsort) 
 tlagsrt <- t(lagsrt)
@@ -52,11 +60,8 @@ dhistomit <- na.omit(dhist) %>%
   filter(lagtype == "five") %>% select(-lag1, -lag2, -lag3, -lag4, -lag5)
 dhistsize <- cbind(dhistomit,dhistsize)
 
-head(dhistsize)
+
 ```
-
-
-
 
 now time for the basic tree model
 
@@ -67,18 +72,17 @@ library(randomForest)
 ```
 
 
-
 ```{r}
-dhist2tree <- dhist2tree %>% mutate(amount = unlist(amount))
-dhist2tree <- dhist2tree %>% select(-lag1, -lag2, -lag3, -lag4, -lag5)
-treebasic <-  tree(formula = amount ~. , data = dhist2tree)
+dhistree <- dhistsize %>% mutate(amount = unlist(amount))
+dhistree <- dhistree %>% select(amount, d1, d2, d3, d4, d5)
+treebasic <-  tree(formula = amount ~. , data = dhistree)
 summary(treebasic)
 plot(treebasic)
 text(treebasic ,pretty=0)
 ```
 
 ```{r}
-treeboost = gbm(formula = amount ~. , data = dhist2tree,distribution=
+treeboost = gbm(formula = amount ~. , data = dhistree,distribution=
 "gaussian",n.trees=5000, interaction.depth = 4)
 summary(treeboost)
 par(mfrow=c(1,2))

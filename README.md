@@ -3,7 +3,7 @@
 
 This repo is for my undergrad thesis on peer effects with online crowdfunding. 
 
-## rcode 
+### rcode 
 
 * import - importing the scraped csvs 
 * clean - data cleaning and tidying and adding predictors 
@@ -11,7 +11,7 @@ This repo is for my undergrad thesis on peer effects with online crowdfunding.
 * trees - includes tree and boosted tree models
 * poisson - looks at time btwn donations 
 
-## scraper
+### scraper
 * prelimscrapezipw = input zipcodes to get campaigns with those codes
 * timescrapew = gets time history for given campaigns
 * complete = combining the two

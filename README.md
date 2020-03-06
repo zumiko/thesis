@@ -5,7 +5,7 @@ This repo is for my undergrad thesis on peer effects with online crowdfunding.
 
 ## rcode 
 
-*import - importing the scraped csvs 
++import - importing the scraped csvs 
 *clean - data cleaning and tidying and adding predictors 
 *regs - includes regression models (fixed effects + ols) 
 *trees - includes tree and boosted tree models

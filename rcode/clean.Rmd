@@ -10,8 +10,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 TODO: 
-Fix subtract the xts in clean up 
-Add skew and var stuff
 Add criteria for inactive campaigns
 Add criteria for incomplete 1000 + 
 
@@ -122,8 +120,11 @@ cleandhist <- function(dhist){
 
 ```{r}
 dhist <- cleandhist(dhist)
+dhist <- dhist %>% mutate(dow = weekdays(createdxts))
+dhist <- dhist %>% mutate(month = months(createdxts))
 head(dhist,20)
 nrow(dhist)
+write.csv(dhist,'dhist1to4.csv')
 ```
 
 
@@ -147,13 +148,13 @@ cleanattributes <- function(dfatt){
      ignore.case = FALSE)
   dfatt$goalamt <- gsub("goal'", "", dfatt$goalamt,
      ignore.case = FALSE)
-  dfatt$goalamt<- gsub("[[:punct:]]", "", dfatt$goalamt,  #yo you can also use str_replace if ya want
+  dfatt$goalamt<- gsub("[[:punct:]]", "", dfatt$goalamt,  #can also use str_replace if ya want
      ignore.case = FALSE)
   dfatt$amtraised<- gsub("[[:punct:]]", "", dfatt$amtraised,
      ignore.case = FALSE)
   dfatt$goalamt <- as.integer(dfatt$goalamt)
   dfatt$amtraised <- as.integer(dfatt$amtraised)
-  dfatt$terminatedbool <- str_detect(dfatt$terminated, "donations") #this doesn't work? DOUBLE CHECK
+  dfatt$terminatedbool <- str_detect(dfatt$terminated, "donations") #double check this line
   dfatt$nonprofit <- str_detect(dfatt$nonprofit., "Registered")
   dfatt<- dfatt%>% mutate(progress = amtraised/goalamt) %>% rename(urlsolid = urlname)
 }
@@ -169,148 +170,6 @@ nrow(campatt)
 ```{r}
 dfc <- left_join(dhist, campatt, by = "urlsolid")
 dfc <- dfc %>% select(-verified, -lag2, -lag3, -lag4, -lag5, -description1, -description2, -description3, -nonprofit.)
-```
-
-
-
-
-
-fulldf$alag1 <- as.integer(as.logical(fulldf$alag1)) #switches from true/false to 0/1
-fulldf$alag2 <- as.integer(as.logical(fulldf$alag2))
-fulldf$alag3 <- as.integer(as.logical(fulldf$alag3))
-fulldf$alag4 <- as.integer(as.logical(fulldf$alag4))
-fulldf$alag5 <- as.integer(as.logical(fulldf$alag5))
-fulldf$alag6 <- as.integer(as.logical(fulldf$alag6))
-fulldf$alag7 <- as.integer(as.logical(fulldf$alag7))
-fulldf$alag8 <- as.integer(as.logical(fulldf$alag8))
-fulldf$alag9 <- as.integer(as.logical(fulldf$alag9))
-fulldf$alag10 <- as.integer(as.logical(fulldf$alag10))
-
-fulldf <- fulldf %>% mutate(histavg = case_when(
-  lagtype == "five" ~ (lag1 + lag2 + lag3 + lag4 + lag5)/5, 
-  lagtype == "ten" | lagtype == "unknown" ~ (lag1 + lag2 + lag3 + lag4 + lag5 + lag6 + lag7 + lag8 + lag9 + lag10)/10)) %>%
-  mutate(anonprop = case_when(
-  lagtype == "five" ~ (alag1 + alag2 + alag3 + alag4 + alag5)/5, 
-  lagtype == "ten" | lagtype == "unknown" ~ (alag1 + alag2 + alag3 + alag4 + alag5 + alag6 + alag7 + alag8 + alag9 + alag10)/10)) %>%
-  mutate(fprop = case_when(
-  lagtype == "five" ~ (glag1 + glag2 + glag3 + glag4 + glag5)/5, 
-  lagtype == "ten" | lagtype == "unknown" ~ (glag1 + glag2 + glag3 + glag4 + glag5 + glag6 + glag7 + glag8 + glag9 + glag10)/10))
-
-fulldf <- fulldf %>% select( -alag2, - alag3, - alag4, - alag5, -alag6, -alag7, -alag8, -alag9, -alag10, -glag2, - glag3, - glag4, - glag5, -glag6, -glag7, -glag8, -glag9, -glag10 )
-  
-fulldf 
-}
-#it
-#nts: had to run devtools::install_github("ropensci/genderdata") 
-addgender <- function(dhist){ #add the gender based on first names by social security 
-  firstname <- word(dhist$name, 1)
-  firstname<- as.data.frame(firstname)
-  dfull <- bind_cols(dhist, firstname)
-  genderdf <- gender(as.character(dfull$firstname), method = "ssa") 
-  genderdf$firstname <- genderdf$name
-  genderdf <- distinct(genderdf) %>% select(-proportion_male, -proportion_female, -year_min, -year_max)
-  finaldf <- left_join(dfull, genderdf, by = "firstname") 
-  finaldf$is_female <- as.integer(str_detect(finaldf$gender, "female")) #get boolean for is female
-  finaldf 
-}
-
-leaddate <- function(dhist){
-  dhist <- dhist %>% 
-  arrange(created_at) %>% 
-  mutate(createdxtslead = lead(createdxts,n = 1L))
-  
-  dhist <- dhist %>% 
-  mutate(timeafter = difftime(createdxts, createdxtslead, units = "secs"))
-
-}
-
-fixdate <- function(date){ 
-  z <- as.POSIXct(date, usetz = TRUE, format="%Y-%m-%dT%H:%M:%OS")  #look at ?strptime for documentation %Y-%m-%dT%H:%M:%S
-z}
-
-checkdateforlags <- function(dhist){  #nice this works
-  dhist <- dhist %>%
-  mutate(lagtype = case_when(
-    createdxts <  ymd_hms("2019-06-01 01:00:00") & createdxts > ymd_hms("2016-06-01 01:00:00")  ~ "unknown",
-    createdxts <  ymd_hms("2016-06-01 01:00:00")   ~ "ten",
-    createdxts >  ymd_hms("2019-06-01 01:00:00")  ~ "five"
-  ))
-}
-
-varandskew10 <- function(dhist){
-  variance <- apply(dhist[,20:29], 1, var)
-  dhist$variance <- variance
-  skew <- apply(dhist[,20:29], 1, skewness)
-  dhist$skewness <- skew
-  dhist
-}
-
-cleandhist <- function(dhist){
-  dhist <- prepdhist(dhist)
-  dhist <- dhist %>% mutate(createdxts = fixdate(created_at))
-  dhist <- leaddate(dhist)
-  dhist <- checkdateforlags(dhist)
-  dhist <- addgender(dhist) #this one is sloooow
-  dhist <- laglead(dhist)
-  dhist <- dhist %>% group_by(urlsolid) %>% mutate(seedvalue = cumsum(amount) - amount)
-}
-
-```
-
-```{r}
-dhist <- cleandhist(dhist)
-dhist2 <- varandskew10(dhist)
-head(dhist)
-
-
-```
-
-
-### Clean campattributes 
-
-```{r}
-#stuff in stringr 
-#str_trim = trim leading and trailing white space 
-#str_pad = pad with additional characters 
-#str_detect = detects a pattern, returns TRUE/FALSE 
-#str_replace = find and replace a pattern 
-```
-
-```{r}
-getdigits <- function(string){
-  list(regmatches(string,gregexpr("[[:digit:]]+\\.*[[:digit:]]*",string)))
-}
-
-cleanattributes <- function(dfatt){ 
-  dfatt <- dfatt[ , -1]
-  dfatt$goalamt <- gsub("'raised of", "", dfatt$goalamt,
-     ignore.case = FALSE)
-  dfatt$goalamt <- gsub("goal'", "", dfatt$goalamt,
-     ignore.case = FALSE)
-  dfatt$goalamt<- gsub("[[:punct:]]", "", dfatt$goalamt,  #yo you can also use str_replace if ya want
-     ignore.case = FALSE)
-  dfatt$amtraised<- gsub("[[:punct:]]", "", dfatt$amtraised,
-     ignore.case = FALSE)
-  dfatt$goalamt <- as.integer(dfatt$goalamt)
-  dfatt$amtraised <- as.integer(dfatt$amtraised)
-  dfatt$terminatedbool <- str_detect(dfatt$terminated, "donations")
-  dfatt$nonprofit <- str_detect(dfatt$nonprofit., "Registered")
-  dfatt<- dfatt%>% mutate(progress = amtraised/goalamt) %>% rename(urlsolid = urlname)
-}
-
-
-```
-
-```{r}
-campatt <- cleanattributes(campatt)
-nrow(campatt)
-```
-
-#Merge important parts of dhist and campatt
-
-```{r}
-dfc <- left_join(dhist, campatt, by = "urlsolid")
-dfc <- dfc %>% select(-verified, -description1, -description2, -description3, -nonprofit.)
 ```
 
 

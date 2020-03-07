@@ -15,13 +15,6 @@ library(viridis)
 
 
 
-```{r}
-it<- dhist1 %>% filter(urlsolid == "14i4vo")
-itt <- zip1 %>% filter(urlsolid == "14i4vo")
-itt
-nrow(it)
-```
-
 
 https://austinwehrwein.com/digital-humanities/creating-a-density-map-in-r-with-zipcodes/
 
@@ -47,9 +40,28 @@ ggplot(mapdf,aes(longitude,latitude)) +
   xlim(-125,-65)+ylim(23,50)
 ```
 
+
+
 ```{r}
-ggplot(data = dhist, aes(x = amount)) + geom_bar() + xlim(0, 100) + ylim(0,300)
+dfc$zip<- clean.zipcodes(dfc$zip)
+data(zipcode)
+mapdf<- merge(dfc, zipcode, by='zip')
+countdf <- mapdf %>% select(urlsolid, zip) %>% group_by(zip) %>%  summarise(count = n_distinct(urlsolid))
+mapdf <- left_join(mapdf, countdf, by = "zip")
+
+us<-map_data('state')
+
+ggplot(mapdf,aes(longitude,latitude)) +
+  geom_polygon(data=us,aes(x=long,y=lat,group=group),color='grey',fill=NA) +
+  geom_point(aes(color = count), alpha=.25) +
+  xlim(-125,-65)+ylim(23,50)
 ```
+
+
+
+
+s
+
 
 ```{r}
 bidf <- dhist %>% filter(urlsolid == "brianisbell")
@@ -63,16 +75,4 @@ j = ggplot() +
 print(j)
 ```
 
-
-
-
-check and see which ones are missing 
-
-
-```{r}
-grouped <- dhist %>% group_by(urlsolid) %>% summarise(avg = mean(amount))
-nrow(grouped)
-merge <- full_join(campattributes, grouped, by = "urlsolid")
-head(merge)
-```
 

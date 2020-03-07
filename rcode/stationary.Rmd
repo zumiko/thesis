@@ -1,0 +1,57 @@
+---
+title: "arima"
+author: "Claire Jellison"
+date: "1/9/2020"
+output: pdf_docnument
+---
+# https://nwfsc-timeseries.github.io/atsa-labs/sec-boxjenkins-aug-dickey-fuller.html
+^^ is great
+```{r}
+library(dplyr)
+library(tseries)
+```
+
+```{r}
+highcamp <- dhist %>% dplyr::group_by(urlsolid) %>% dplyr::summarise(count = n_distinct(donation_id)) %>% arrange(desc(count))
+toppedout <- highcamp[1:32, ]
+```
+
+
+```{r}
+c1 <- dhist %>% dplyr::filter(urlsolid == "6ybheh-lights-on-4-lizzy")
+c1d<-ts(c1$amount)
+acf(c1d, lag.max = 15, plot = TRUE)
+head(c1)
+```
+
+```{r}
+c2 <- dhist %>% dplyr::filter(urlsolid == "wnnegt-heart4dezi")
+c2d<-ts(c2$amount)
+acf(c2d, lag.max = 15, plot = TRUE)
+head(c2)
+```
+
+
+```{r}
+c3 <- dhist %>% dplyr::filter(urlsolid == "billboards-for-justice4jody")
+c3d<-ts(c3$amount)
+acf(c3d, lag.max = 15, plot = TRUE)
+head(c3)
+```
+
+```{r}
+c4 <- dhist %>% dplyr::filter(urlsolid == "StephensonFund")
+c4d<-ts(c4$amount)
+acf(c4d, lag.max = 15, plot = TRUE)
+head(c4)
+```
+
+
+
+```{r}
+adf.test(c1d, alternative = "stationary", k = 0)
+adf.test(c2d, alternative = "stationary", k = 0)
+adf.test(c3d, alternative = "stationary", k = 0)
+adf.test(c4d, alternative = "stationary", k = 0)
+```
+

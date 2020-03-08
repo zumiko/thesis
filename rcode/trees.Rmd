@@ -28,6 +28,9 @@ lagsort<- function(lagrow){
 }
 ```
 
+```{r}
+asdf <- lm(amount ~ d1 + variance + skewness, data = dhistsize)
+```
 
 
 ```{r}
@@ -37,8 +40,8 @@ dhistsize <- na.omit(dhist) %>%
   select(lag1,lag2,lag3,lag4,lag5) 
 
 
-variance <- apply(dhistsize, 1, var)
-skew <- apply(dhistsize, 1, skewness)
+variance <- apply(dhistsize[,23:27], 1, var)
+skew <- apply(dhistsize[,23:27], 1, skewness)
 dhistsize$variance <- variance
 dhistsize$skewness <- skew
 
@@ -63,6 +66,10 @@ dhistsize <- cbind(dhistomit,dhistsize)
 
 ```
 
+
+
+
+
 now time for the basic tree model
 
 ```{r}
@@ -73,8 +80,8 @@ library(randomForest)
 
 
 ```{r}
-dhistree <- dhistsize %>% mutate(amount = unlist(amount))
-dhistree <- dhistree %>% select(amount, d1, d2, d3, d4, d5)
+dhistree10 <- na.omit(dhist) %>% dplyr::filter(lagtype == "ten") %>% mutate(amount = unlist(amount))
+dhistree <- dhistree10 %>% select(amount, skewness, variance, histavg, is_female, lag1)
 treebasic <-  tree(formula = amount ~. , data = dhistree)
 summary(treebasic)
 plot(treebasic)
@@ -83,20 +90,13 @@ text(treebasic ,pretty=0)
 
 ```{r}
 treeboost = gbm(formula = amount ~. , data = dhistree,distribution=
-"gaussian",n.trees=5000, interaction.depth = 4)
+"gaussian",n.trees=1000, interaction.depth = 4)
 summary(treeboost)
 par(mfrow=c(1,2))
-plot(treeboost ,i="d2") 
-plot(treeboost,i="d1")
+plot(treeboost ,i="skewness") 
+plot(treeboost,i="variance")
+plot(treeboost,i=c(1,2,3), return.grid = TRUE)
 ```
-
-
-```{r}
-bagtree =randomForest(amount ~. ,data = dhist2tree,
-mtry=5,importance =TRUE)
-```
-
-#Now let's see how they compare and preform on a test data set 
 
 
 

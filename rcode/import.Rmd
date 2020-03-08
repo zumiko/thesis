@@ -88,6 +88,76 @@ campatt4 <- tbl_df(campatt4)
 
 
 ```{r}
+## Read in data 
+pathhist5 <- "/Users/CJ/Desktop/thesisdata/p5/donationhistory.csv" 
+pathzip5 <- "/Users/CJ/Desktop/thesisdata/p5/campsbyzip3.csv" 
+pathattributes5 <- "/Users/CJ/Desktop/thesisdata/p5/campattributes.csv" 
+
+dhist5 <- read.csv(pathhist5)
+dhist5 <- tbl_df(dhist5)
+
+zip5 <- read.csv(pathzip5)
+zip5 <- tbl_df(zip5)
+
+campatt5 <- read.csv(pathattributes5)
+campatt5 <- tbl_df(campatt5)
+```
+
+
+```{r}
+## Read in data 
+pathhist6 <- "/Users/CJ/Desktop/thesisdata/p6/donationhistory.csv" 
+pathzip6 <- "/Users/CJ/Desktop/thesisdata/p6/campsbyzip2.csv" 
+pathattributes6 <- "/Users/CJ/Desktop/thesisdata/p6/campattributes.csv" 
+
+dhist6 <- read.csv(pathhist6)
+dhist6 <- tbl_df(dhist6)
+
+zip6 <- read.csv(pathzip6)
+zip6 <- tbl_df(zip6)
+
+campatt6 <- read.csv(pathattributes6)
+campatt6 <- tbl_df(campatt6)
+
+```
+
+
+```{r}
+## Read in data 
+pathhist7 <- "/Users/CJ/Desktop/thesisdata/p7/donationhistory.csv" 
+pathzip7 <- "/Users/CJ/Desktop/thesisdata/p7/campsbyzip3.csv" 
+pathattributes7 <- "/Users/CJ/Desktop/thesisdata/p7/campattributes.csv" 
+
+dhist7 <- read.csv(pathhist7)
+dhist7 <- tbl_df(dhist7)
+
+zip7 <- read.csv(pathzip7)
+zip7 <- tbl_df(zip7)
+
+campatt7 <- read.csv(pathattributes7)
+campatt7 <- tbl_df(campatt7)
+```
+
+```{r}
+## Read in data 
+
+pathhist8 <- "/Users/CJ/Desktop/thesisdata/p8/donationhistory.csv" 
+pathzip8 <- "/Users/CJ/Desktop/thesisdata/p8/campsbyzip4.csv" 
+pathattributes8 <- "/Users/CJ/Desktop/thesisdata/p8/campattributes.csv" 
+
+dhist8 <- read.csv(pathhist4)
+dhist8 <- tbl_df(dhist4)
+
+zip8 <- read.csv(pathzip8)
+zip8 <- tbl_df(zip8)
+
+campatt8 <- read.csv(pathattributes8)
+campatt8 <- tbl_df(campatt8)
+```
+
+
+
+```{r}
 #this function stacks the csvs
 lapply_read_csv_bind_rows <- function(path, pattern = "*.csv") {
     files = list.files(path, pattern, full.names = TRUE)

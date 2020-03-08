@@ -122,6 +122,10 @@ cleandhist <- function(dhist){
 dhist <- cleandhist(dhist)
 dhist <- dhist %>% mutate(dow = weekdays(createdxts))
 dhist <- dhist %>% mutate(month = months(createdxts))
+variance <- apply(dhist[,18:27], 1, var)
+skew <- apply(dhist[,18:27], 1, skewness)
+dhist$variance <- variance
+dhist$skewness <- skew
 head(dhist,20)
 nrow(dhist)
 write.csv(dhist,'dhist1to4.csv')

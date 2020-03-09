@@ -1,14 +1,19 @@
-basically, ignore everything except for complete2.py
 
+# Giving By the Numbers 
 
+This repo is for my undergrad thesis on peer effects with online crowdfunding. 
 
-prelimscrapezipw = input zipcodes to get campaigns with those codes
+### rcode 
 
+* import - importing the scraped csvs 
+* clean - data cleaning and tidying and adding predictors 
+* regs - includes regression models (fixed effects + ols) 
+* trees - includes tree and boosted tree models
+* poisson - looks at time btwn donations 
 
-timescrapew = gets time history for given campaigns
-
-complete = combining the two
-
-
+### scraper
+* prelimscrapezipw = input zipcodes to get campaigns with those codes
+* timescrapew = gets time history for given campaigns
+* complete = combining the two
 
 walking on a tightrope to the sun

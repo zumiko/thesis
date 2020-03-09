@@ -10,8 +10,16 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 TODO: 
-Add criteria for inactive campaigns
-Add criteria for incomplete 1000 + 
+Add criteria for incomplete 1000 + (dhist)
+Add skew var kurt and mean (dhist)
+
+PROBLEMS: 
+lags are not grouped by rn (dhist)
+weird duplicate donations (dhist)
+add no donations col (campatt)
+
+WISHLIST: 
+Add criteria for inactive campaigns (campatt)
 
 
 ```{r message=TRUE, warning=TRUE}
@@ -31,11 +39,13 @@ library(lubridate)
 #Clean zips 
 ```{r}
 prepzip <- function(zips){
+
 zips <- zips %>% 
   rename(
    urlsolid = X,
     zip = X0 
   ) 
+zips <- zips[!duplicated(zips$urlsolid), ]
 zips
 } 
 
@@ -50,30 +60,20 @@ dhist$is_anonymous <- str_detect(dhist$is_anonymous, fixed('True', ignore_case=T
 dhist$verified <- str_detect(dhist$verified, fixed('True', ignore_case=TRUE))
 dhist$is_offline <- str_detect(dhist$is_offline, fixed('True', ignore_case=TRUE))
 dhist
-} #this works now with the ignore case thing
+} #this works now with the ignore case thingcççç
 
 
 laglead <- function(fulldf){ #add the lags and leads
 fulldf <- fulldf %>% 
-  arrange(created_at) %>% 
+  group_by(urlsolid) %>%
   mutate(lag1 = dplyr::lag(amount,n = 1L), lag2 = dplyr::lag(amount,n = 2L), lag3= dplyr::lag(amount,n = 3L), lag4= dplyr::lag(amount,n = 4L), lag5= dplyr::lag(amount,n = 5L), lag6 = dplyr::lag(amount,n = 6L), lag7 = dplyr::lag(amount,n = 7L), lag8= dplyr::lag(amount,n = 8L), lag9= dplyr::lag(amount,n = 9L), lag10= dplyr::lag(amount,n = 10L), alag1 = dplyr::lag(is_anonymous,n = 1L), alag2 = dplyr::lag(is_anonymous,n = 2L), alag3= dplyr::lag(is_anonymous,n = 3L), alag4= dplyr::lag(is_anonymous,n = 4L), alag5= dplyr::lag(is_anonymous,n = 5L), alag6 = dplyr::lag(is_anonymous,n = 6L), alag7 = dplyr::lag(is_anonymous,n = 7L), alag8= dplyr::lag(is_anonymous,n = 8L), alag9= dplyr::lag(is_anonymous,n = 9L), alag10= dplyr::lag(is_anonymous,n = 10L), glag1 = dplyr::lag(is_female,n = 1L), glag2 = dplyr::lag(is_female,n = 2L), glag3= dplyr::lag(is_female,n = 3L), glag4= dplyr::lag(is_female,n = 4L), glag5= dplyr::lag(is_female,n = 5L), glag6 = dplyr::lag(is_female,n = 6L), glag7 = dplyr::lag(is_female,n = 7L), glag8= dplyr::lag(is_female,n = 8L), glag9= dplyr::lag(is_female,n = 9L), glag10= dplyr::lag(is_female,n = 10L))
 
-fulldf$alag1 <- as.integer(as.logical(fulldf$alag1)) #switches from true/false to 0/1
-fulldf$alag2 <- as.integer(as.logical(fulldf$alag2))
-fulldf$alag3 <- as.integer(as.logical(fulldf$alag3))
-fulldf$alag4 <- as.integer(as.logical(fulldf$alag4))
-fulldf$alag5 <- as.integer(as.logical(fulldf$alag5))
-fulldf$alag6 <- as.integer(as.logical(fulldf$alag6))
-fulldf$alag7 <- as.integer(as.logical(fulldf$alag7))
-fulldf$alag8 <- as.integer(as.logical(fulldf$alag8))
-fulldf$alag9 <- as.integer(as.logical(fulldf$alag9))
-fulldf$alag10 <- as.integer(as.logical(fulldf$alag10))
-fulldf <- fulldf %>% mutate(histavg = case_when(
-  lagtype == "five" ~ (lag1 + lag2 + lag3 + lag4 + lag5)/5, 
-  lagtype == "ten" | lagtype == "unknown" ~ (lag1 + lag2 + lag3 + lag4 + lag5 + lag6 + lag7 + lag8 + lag9 + lag10)/10)) %>%
-  mutate(anonprop = case_when(
-  lagtype == "five" ~ (alag1 + alag2 + alag3 + alag4 + alag5)/5, 
-  lagtype == "ten" | lagtype == "unknown" ~ (alag1 + alag2 + alag3 + alag4 + alag5 + alag6 + alag7 + alag8 + alag9 + alag10)/10)) #%>%
+#fulldf <- fulldf %>% mutate(histavg = case_when(
+  #lagtype == "five" ~ (lag1 + lag2 + lag3 + lag4 + lag5)/5, 
+  #lagtype == "ten" | lagtype == "unknown" ~ (lag1 + lag2 + lag3 + lag4 + lag5 + lag6 + lag7 + lag8 + lag9 + lag10)/10)) %>%
+  #mutate(anonprop = case_when(
+  #lagtype == "five" ~ (alag1 + alag2 + alag3 + alag4 + alag5)/5, 
+  #lagtype == "ten" | lagtype == "unknown" ~ (alag1 + alag2 + alag3 + alag4 + alag5 + alag6 + alag7 + alag8 + alag9 + #alag10)/10)) #%>%
   #mutate(fprop = case_when(
   #lagtype == "five" ~ (glag1 + glag2 + glag3 + glag4 + glag5)/5, 
   #lagtype == "ten" | lagtype == "unknown" ~ (glag1 + glag2 + glag3 + glag4 + glag5 + glag6 + glag7 + glag8 + glag9 + alag10)/10))
@@ -92,14 +92,26 @@ addgender <- function(dhist){ #add the gender based on first names by social sec
   genderdf <- distinct(genderdf) %>% select(-proportion_male, -proportion_female, -year_min, -year_max)
   finaldf <- left_join(dfull, genderdf, by = "firstname") 
   finaldf$is_female <- as.integer(str_detect(finaldf$gender, "female")) #get boolean for is female
-  finaldf 
+  finaldf$is_anonymous <- as.integer(as.logical(finaldf$is_anonymous))
+  finaldf <- finaldf %>% mutate(gender = case_when(
+     is_anonymous == 1 ~ "anonymous",
+    TRUE ~ gender))
+  finaldf %>% select(-name.y) %>% rename(name = name.x)
 }
+
 leaddate <- function(dhist){
-  dhist <- dhist %>% mutate(createdxtslead = lead(createdxts,n = 1L))
+  dhist <- dhist  %>% 
+    group_by(urlsolid) %>% 
+    arrange(createdxts, .by_group = TRUE) %>%  #don't break original grouping
+    mutate(createdxtslead = lead(createdxts,n = 1L))
+  dhist <- dhist %>% 
+    mutate(timeafter = difftime(createdxtslead, createdxts, units = "secs")) #get seconds until next donation
 }
+
 fixdate <- function(date){ 
   z <- as.POSIXct(date, usetz = TRUE, format="%Y-%m-%dT%H:%M:%OS")  #look at ?strptime for documentation %Y-%m-%dT%H:%M:%S
 z}
+
 checkdateforlags <- function(dhist){  #nice this works
   dhist <- dhist %>%
   mutate(lagtype = case_when(
@@ -108,24 +120,65 @@ checkdateforlags <- function(dhist){  #nice this works
     createdxts >  ymd_hms("2019-06-01 01:00:00")  ~ "five"
   ))
 }
+
 cleandhist <- function(dhist){
-  dhist <- prepdhist(dhist)
-  dhist <- dhist %>% mutate(createdxts = fixdate(created_at))
-  dhist <- leaddate(dhist)
-  dhist <- checkdateforlags(dhist)
-  dhist <- addgender(dhist)
-  dhist <- laglead(dhist)
+  dhist <- prepdhist(dhist) #good
+  dhist <- dhist %>% mutate(createdxts = fixdate(created_at)) #get to right datetime format
+  dhist <- dhist %>% mutate(dow = weekdays(createdxts)) #add day of week
+  dhist <- dhist %>% mutate(month = months(createdxts)) #good
+  dhist <- leaddate(dhist) #add lead date, time after, and arrange
+  dhist <- checkdateforlags(dhist) #hella slow but good
+  dhist <- addgender(dhist) #good
+  dhist <- laglead(dhist) #good
 }
 ```
 
 ```{r}
+a<- prepdhist(dhist)
+b<- a %>% mutate(createdxts = fixdate(created_at))
+c<- leaddate(b)
+d<- checkdateforlags(c)
+e<- addgender(d)
+f <- laglead(e)
+
 dhist <- cleandhist(dhist)
-dhist <- dhist %>% mutate(dow = weekdays(createdxts))
-dhist <- dhist %>% mutate(month = months(createdxts))
-variance <- apply(dhist[,18:27], 1, var)
-skew <- apply(dhist[,18:27], 1, skewness)
-dhist$variance <- variance
-dhist$skewness <- skew
+
+head(f,100)
+
+
+dhist10s <- f %>% dplyr::filter(lagtype == "ten" | lagtype == "unknown") %>% select(donation_id,urlsolid, lag1,lag2,lag3,lag4,lag5, lag6, lag7, lag8, lag9, lag10)
+
+variance10 <- apply(dhist10s[, 3:12], 1, var)
+skew10 <- apply(dhist10s[, 3:12], 1, skewness) #then just mutate that column otherwise 
+kurtosis10 <- apply(dhist10s[, 3:12], 1, kurtosis)
+mean10 <- apply(dhist10s[, 3:12], 1, mean)
+#mean10 <- gapply(dhist10s[, 3:1                                                                                                                                                                                                                ccc2], 1, mean) 
+
+dhist10s$kurtosis <- kurtosis10
+dhist10s$variance <- variance10
+dhist10s$skewness <- skew10
+dhist10s$mean <- mean10
+dhist10s <- dhist10s %>% select(donation_id,kurtosis, variance, skewness, mean)
+g <- left_join(f, dhist10s, by ="donation_id")
+
+
+dhist5s <- f %>% dplyr::filter(lagtype == "5") %>% select(donation_id,urlsolid, lag1,lag2,lag3,lag4,lag5)
+
+variance5 <- apply(dhist[,3:7], 1, var)
+skew5 <- apply(dhist[,3:7], 1, skewness) 
+kurtosis5 <- apply(dhist[,3:7], 1, kurtosis)
+mean5 <- apply(dhist[,3:7], 1, mean)
+
+dhist5s$kurt <- kurtosis5
+dhist5s$var <- variance5
+dhist5s$skew <- skew5
+dhist5s$avg <- mean5
+
+dhist5s <- dhist5s %>% select(donation_id, kurt, var, skew, avg)
+g <- left_join(f, dhist5s, by ="donation_id")
+
+dhist <- dhist %>% dplyr::filter(urlsolid == "#NAME?") #need to add this at some pt
+
 head(dhist,20)
 nrow(dhist)
 write.csv(dhist,'dhist1to4.csv')

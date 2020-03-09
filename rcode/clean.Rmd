@@ -11,11 +11,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 TODO: 
 Add criteria for incomplete 1000 + (dhist)
-Add skew var kurt and mean (dhist)
 
 PROBLEMS: 
-lags are not grouped by rn (dhist)
-weird duplicate donations (dhist)
 add no donations col (campatt)
 
 WISHLIST: 
@@ -33,6 +30,7 @@ library(tidyr)
 library(matrixStats)
 library(gender)
 library(lubridate)
+library(fBasics)
 ```
 
 
@@ -68,15 +66,15 @@ fulldf <- fulldf %>%
   group_by(urlsolid) %>%
   mutate(lag1 = dplyr::lag(amount,n = 1L), lag2 = dplyr::lag(amount,n = 2L), lag3= dplyr::lag(amount,n = 3L), lag4= dplyr::lag(amount,n = 4L), lag5= dplyr::lag(amount,n = 5L), lag6 = dplyr::lag(amount,n = 6L), lag7 = dplyr::lag(amount,n = 7L), lag8= dplyr::lag(amount,n = 8L), lag9= dplyr::lag(amount,n = 9L), lag10= dplyr::lag(amount,n = 10L), alag1 = dplyr::lag(is_anonymous,n = 1L), alag2 = dplyr::lag(is_anonymous,n = 2L), alag3= dplyr::lag(is_anonymous,n = 3L), alag4= dplyr::lag(is_anonymous,n = 4L), alag5= dplyr::lag(is_anonymous,n = 5L), alag6 = dplyr::lag(is_anonymous,n = 6L), alag7 = dplyr::lag(is_anonymous,n = 7L), alag8= dplyr::lag(is_anonymous,n = 8L), alag9= dplyr::lag(is_anonymous,n = 9L), alag10= dplyr::lag(is_anonymous,n = 10L), glag1 = dplyr::lag(is_female,n = 1L), glag2 = dplyr::lag(is_female,n = 2L), glag3= dplyr::lag(is_female,n = 3L), glag4= dplyr::lag(is_female,n = 4L), glag5= dplyr::lag(is_female,n = 5L), glag6 = dplyr::lag(is_female,n = 6L), glag7 = dplyr::lag(is_female,n = 7L), glag8= dplyr::lag(is_female,n = 8L), glag9= dplyr::lag(is_female,n = 9L), glag10= dplyr::lag(is_female,n = 10L))
 
-#fulldf <- fulldf %>% mutate(histavg = case_when(
-  #lagtype == "five" ~ (lag1 + lag2 + lag3 + lag4 + lag5)/5, 
-  #lagtype == "ten" | lagtype == "unknown" ~ (lag1 + lag2 + lag3 + lag4 + lag5 + lag6 + lag7 + lag8 + lag9 + lag10)/10)) %>%
-  #mutate(anonprop = case_when(
-  #lagtype == "five" ~ (alag1 + alag2 + alag3 + alag4 + alag5)/5, 
-  #lagtype == "ten" | lagtype == "unknown" ~ (alag1 + alag2 + alag3 + alag4 + alag5 + alag6 + alag7 + alag8 + alag9 + #alag10)/10)) #%>%
-  #mutate(fprop = case_when(
-  #lagtype == "five" ~ (glag1 + glag2 + glag3 + glag4 + glag5)/5, 
-  #lagtype == "ten" | lagtype == "unknown" ~ (glag1 + glag2 + glag3 + glag4 + glag5 + glag6 + glag7 + glag8 + glag9 + alag10)/10))
+fulldf <- fulldf %>% mutate(histavg = case_when(
+  lagtype == "five" ~ (lag1 + lag2 + lag3 + lag4 + lag5)/5, 
+  lagtype == "ten" | lagtype == "unknown" ~ (lag1 + lag2 + lag3 + lag4 + lag5 + lag6 + lag7 + lag8 + lag9 + lag10)/10)) %>%
+  mutate(anonprop = case_when(
+  lagtype == "five" ~ (alag1 + alag2 + alag3 + alag4 + alag5)/5, 
+  lagtype == "ten" | lagtype == "unknown" ~ (alag1 + alag2 + alag3 + alag4 + alag5 + alag6 + alag7 + alag8 + alag9 + alag10)/10)) %>%
+  mutate(fprop = case_when(
+  lagtype == "five" ~ (glag1 + glag2 + glag3 + glag4 + glag5)/5, 
+  lagtype == "ten" | lagtype == "unknown" ~ (glag1 + glag2 + glag3 + glag4 + glag5 + glag6 + glag7 + glag8 + glag9 + alag10)/10))
 
 fulldf <- fulldf %>% select(-alag2, - alag3, - alag4, - alag5, -alag6, -alag7, -alag8, -alag9, -alag10, -glag2, - glag3, - glag4, - glag5, -glag6, -glag7, -glag8, -glag9, -glag10 )
   
@@ -106,6 +104,7 @@ leaddate <- function(dhist){
     mutate(createdxtslead = lead(createdxts,n = 1L))
   dhist <- dhist %>% 
     mutate(timeafter = difftime(createdxtslead, createdxts, units = "secs")) #get seconds until next donation
+  dhist <- dhist %>% dplyr::filter(urlsolid != "#NAME?") #like 35 of these
 }
 
 fixdate <- function(date){ 
@@ -121,6 +120,42 @@ checkdateforlags <- function(dhist){  #nice this works
   ))
 }
 
+sumstats <- function(f) {
+dhist10s <- f %>% dplyr::filter(lagtype == "ten" | lagtype == "unknown") %>% ungroup(urlsolid) %>% select(donation_id, lag1,lag2,lag3,lag4,lag5, lag6, lag7, lag8, lag9, lag10)
+
+variance10 <- apply(dhist10s[, 2:11], 1, var)
+skew10 <- apply(dhist10s[, 2:11], 1, skewness) #then just mutate that column otherwise 
+kurtosis10 <- apply(dhist10s[, 2:11], 1, kurtosis)
+mean10 <- apply(dhist10s[, 2:11], 1, mean)
+
+dhist10s$kurtosis10 <- kurtosis10
+dhist10s$variance10 <- variance10
+dhist10s$skewness10 <- skew10
+dhist10s$mean10 <- mean10
+
+dhist10s <- dhist10s %>% select(donation_id,kurtosis10, variance10, skewness10, mean10)
+g <- left_join(f, dhist10s, by ="donation_id")
+
+dhist5s <- f %>% dplyr::filter(lagtype == "five") %>%  ungroup(urlsolid)  %>% select(donation_id, lag1,lag2,lag3,lag4,lag5)
+
+variance5 <- apply(dhist5s[,2:6], 1, var)
+skew5 <- apply(dhist5s[,2:6], 1, skewness) 
+kurtosis5 <- apply(dhist5s[,2:6], 1, kurtosis)
+mean5 <- apply(dhist5s[,2:6], 1, mean)
+
+dhist5s$kurtosis5 <- kurtosis5
+dhist5s$variance5 <- variance5
+dhist5s$skewness5 <- skew5
+dhist5s$mean5 <- mean5
+
+dhist5s <- dhist5s %>% select(donation_id,kurtosis5, variance5, skewness5, mean5)
+
+g <- left_join(g, dhist5s, by ="donation_id")
+
+g <- g %>% mutate(kurtc = coalesce(kurtosis5, kurtosis10), histavgc = coalesce(mean5, mean10), skewc = coalesce(skewness5, skewness10),varc = coalesce(variance5, variance10)) %>% group_by(urlsolid)
+g
+}
+
 cleandhist <- function(dhist){
   dhist <- prepdhist(dhist) #good
   dhist <- dhist %>% mutate(createdxts = fixdate(created_at)) #get to right datetime format
@@ -130,6 +165,7 @@ cleandhist <- function(dhist){
   dhist <- checkdateforlags(dhist) #hella slow but good
   dhist <- addgender(dhist) #good
   dhist <- laglead(dhist) #good
+  dhist <- sumstats(dhist)
 }
 ```
 
@@ -140,48 +176,15 @@ c<- leaddate(b)
 d<- checkdateforlags(c)
 e<- addgender(d)
 f <- laglead(e)
+g <- sumstats(f)
 
 dhist <- cleandhist(dhist)
 
-head(f,100)
-
-
-dhist10s <- f %>% dplyr::filter(lagtype == "ten" | lagtype == "unknown") %>% select(donation_id,urlsolid, lag1,lag2,lag3,lag4,lag5, lag6, lag7, lag8, lag9, lag10)
-
-variance10 <- apply(dhist10s[, 3:12], 1, var)
-skew10 <- apply(dhist10s[, 3:12], 1, skewness) #then just mutate that column otherwise 
-kurtosis10 <- apply(dhist10s[, 3:12], 1, kurtosis)
-mean10 <- apply(dhist10s[, 3:12], 1, mean)
-#mean10 <- gapply(dhist10s[, 3:1                                                                                                                                                                                                                ccc2], 1, mean) 
-
-dhist10s$kurtosis <- kurtosis10
-dhist10s$variance <- variance10
-dhist10s$skewness <- skew10
-dhist10s$mean <- mean10
-dhist10s <- dhist10s %>% select(donation_id,kurtosis, variance, skewness, mean)
-g <- left_join(f, dhist10s, by ="donation_id")
-
-
-dhist5s <- f %>% dplyr::filter(lagtype == "5") %>% select(donation_id,urlsolid, lag1,lag2,lag3,lag4,lag5)
-
-variance5 <- apply(dhist[,3:7], 1, var)
-skew5 <- apply(dhist[,3:7], 1, skewness) 
-kurtosis5 <- apply(dhist[,3:7], 1, kurtosis)
-mean5 <- apply(dhist[,3:7], 1, mean)
-
-dhist5s$kurt <- kurtosis5
-dhist5s$var <- variance5
-dhist5s$skew <- skew5
-dhist5s$avg <- mean5
-
-dhist5s <- dhist5s %>% select(donation_id, kurt, var, skew, avg)
-g <- left_join(f, dhist5s, by ="donation_id")
-
-dhist <- dhist %>% dplyr::filter(urlsolid == "#NAME?") #need to add this at some pt
+head(f,20)
 
 head(dhist,20)
 nrow(dhist)
-write.csv(dhist,'dhist1to4.csv')
+write.csv(g,'dhist1to4.csv')
 ```
 
 

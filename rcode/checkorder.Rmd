@@ -1,0 +1,96 @@
+---
+title: "checkorder"
+author: "Claire Jellison"
+date: "3/11/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The purpose of this file is to check if the order of the lags matters 
+
+```{r}
+library(texreg)
+```
+
+
+```{r}
+#sample(x, size, replace = FALSE, prob = NULL)
+dhist5check <- dhist5size %>% select(amount, createdxts, urlsolid, histavg, lag1, lag2, lag3, lag4, lag5, d1, d2, d3, d4, d5)
+```
+
+```{r}
+permutations <- apply(dhist5check[,5:9], 1, sample) #randomly permute lagged values, replace is default FALSE and default size is the size of the input
+permutations <- t(permutations)
+dhist5check$lag1test <- permutations[,1]
+dhist5check$lag2test <- permutations[,2]
+dhist5check$lag3test <- permutations[,3]
+dhist5check$lag4test <- permutations[,4]
+dhist5check$lag5test <- permutations[,5]
+```
+
+```{r}
+regonlags <- lm(amount ~ lag1 + lag2 + lag3 + lag4 + lag5, data = dhist5check)
+regonlagstest <- lm(amount ~ lag1test + lag2test + lag3test + lag4test + lag5test, data = dhist5check)
+summary(regonlags)
+summary(regonlagstest)
+```
+So looks like the R^2 is slightly better with the correctly ordered lags but only by .01
+
+
+Try reordering all except for the fist one, most recent lag
+```{r}
+permutationslim <- apply(dhist5check[,6:9], 1, sample) #now permute lags 2 through 5 
+permutationslim <- t(permutationslim)
+dhist5check$lag2test2 <- permutations[,2]
+dhist5check$lag3test2 <- permutations[,3]
+dhist5check$lag4test2 <- permutations[,4]
+dhist5check$lag5test2 <- permutations[,5]
+```
+
+```{r}
+regonlagstest2 <- lm(amount ~ lag1 + lag2test2 + lag3test2 + lag4test2 + lag5test2, data = dhist5check)
+summary(regonlagstest2)
+```
+
+```{r}
+regonlagssize<- lm(amount ~ d1 + d2 + d3 + d4 + d5, data = dhist5check)
+regonmean<- lm(amount ~ histavg, data = dhist5check)
+summary(regonlagssize)
+summary(regonmean)
+#texreg(list(regonlags,regonlagstest,regonlagstest2))
+```
+
+
+Now for the ten donations one: 
+
+```{r}
+#sample(x, size, replace = FALSE, prob = NULL)
+dhist10check <- dhist10size %>% select(amount, createdxts, urlsolid, histavg, lag1, lag2, lag3, lag4, lag5, lag5, lag6, lag7, lag8, lag9, lag10)
+```
+
+
+```{r}
+permutations10 <- apply(dhist10check[,5:14], 1, sample) #randomly permute lagged values, replace is default FALSE and default size is the size of the input
+permutations10 <- t(permutations10)
+dhist10check$lag1test <- permutations10[,1]
+dhist10check$lag2test <- permutations10[,2]
+dhist10check$lag3test <- permutations10[,3]
+dhist10check$lag4test <- permutations10[,4]
+dhist10check$lag5test <- permutations10[,5]
+dhist10check$lag6test <- permutations10[,6]
+dhist10check$lag7test <- permutations10[,7]
+dhist10check$lag8test <- permutations10[,8]
+dhist10check$lag9test <- permutations10[,9]
+dhist10check$lag10test <- permutations10[,10]
+```
+
+```{r}
+regonlags10 <- lm(amount ~ lag1 + lag2 + lag3 + lag4 + lag5 + lag7 + lag8 + lag9 + lag10, data = dhist10check)
+regonlagstest10 <- lm(amount ~ lag1test + lag2test + lag3test + lag4test + lag5test + lag6test + lag7test + lag8test + lag9test + lag10test, data = dhist10check)
+summary(regonlags10)
+summary(regonlagstest10)
+```
+

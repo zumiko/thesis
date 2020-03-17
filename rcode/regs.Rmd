@@ -10,20 +10,41 @@ library(texreg)
 library(dplyr)
 ```
 
+```{r}
+df <- read.csv("dhist1to4.csv")
+dhist <- tbl_df(df)
+```
+
+
 #https://drsimonj.svbtle.com/visualising-residuals for looking at residuals
 ```{r}
 #mean reg
+#l <- dfc[duplicated(dfc$donation_id),]
+dhist <- dhist %>% dplyr::filter(lagtype != "unknown") %>% mutate(amountln = log(amount))
+dhist5 <- dhist %>% dplyr::filter(lagtype == "five")
+dhist10 <- dhist %>% dplyr::filter(lagtype == "ten")
 dfc <- dfc %>% filter(lagtype != "unknown")
-dfc10 <- dfc %>% filter(lagtype == "ten")
-dfc5 <- dfc %>% filter(lagtype == "five")
-it <- lm(amount ~ histavg + seedvalue, data = dhist)
-meanlm <- lm(amount ~ histavg*lagtype, data = dfc)
-meanlm2 <- lm(amount ~ histavg*lagtype + is_anonymous*histavg , data = dfc)
-meanlm3 <- lm(amount ~ histavg*lagtype + is_female*histavg , data = dfc)
-meanlm4 <- lm(amount ~ histavg*lagtype + nonprofit*histavg, data = dfc)
-texreg(list(meanlm, meanlm2, meanlm3, meanlm4))
-summary( meanlm4)                                                                                                                                                                             
+mc <- lm(amount ~ lag1 + lag2 + lag3 + lag4 + lag5 + lag6 + lag7 + lag8 + lag9, data = dhist5size)
+mc2 <- lm(amount ~ lag1  , data = dhist5size)
+meanlm <- lm(amount ~ histavg*lagtype , data = dhist)
+meanlm1ln <- lm(amountln ~ histavg*lagtype , data = dhist)
+meanlm2 <- lm(amount ~ histavg*lagtype + is_anonymous*histavg , data = dhist)
+meanlm3 <- lm(amount ~ histavg*lagtype + is_female*histavg , data = dhist)
+#meanlm4 <- lm(amount ~ histavg*lagtype + nonprofit*histavg, data = dfc)
+texreg(list(meanlm, meanlm2, meanlm3))
+summary(mc)  
+summary(mc2)
+summary(meanlm)
+plot(meanlm1ln)   
+plot(meanlm)  
 ```
+
+```{r}
+#var,skew, avg
+meanprop<- lm(amount ~ histavg*skewc + skewc+ kurtc , data = dhist)
+summary(meanprop)
+```
+
 
 ```{r}
 categorylm <- lm(amount ~ histavg*lagtype + category*histavg, data = dfc)
@@ -34,7 +55,7 @@ texreg(categorylm)
 
 ```{r}
 #anon reg
-anonlm <- glm(is_anonymous ~ anonprop, data = dhist2, family = "binomial")
+anonlm <- glm(is_anonymous ~ anonprop, data = dhist, family = "binomial")
 summary(anonlm)
 texreg(anonlm)
 ```
@@ -53,32 +74,44 @@ timeafterlm <- lm(amount ~ timeafter*histavg + gender*histavg + anonpropscreen*h
 summary(timeafterlm)
 ```
 
-#trying now for median 
-
+#now for some size based models
 
 ```{r}
-minlm <- lm(amount ~ d2, data = dhistsize)
+minlm <- lm(amount ~ d1, data = dhist5size)
 summary(minlm)
-medianlm <- lm(amount ~ d3, data = dhistsize)
+medianlm <- lm(amount ~ d3, data = dhist5size)
 summary(medianlm)
-maxlm <- lm(amount ~ d5, data = dhistsize)
+maxlm <- lm(amount ~ d5, data = dhist5size)
 summary(maxlm)
-alllm <- lm(amount ~ d1 + d2 + I(d2^2) + d3 + d4 + d5, data = dhistsize)
+alllm <- lm(amount ~ d1 + d2 + d3 + d4 + d5, data = dhist5size)
 summary(alllm)
-allinterlm <- lm(amount ~ d1*d2 + d1*d3 + d1*d4 + d1*d5 + d2*d3 + d2*d4 + d2*d5 + d3*d4 + d3*d5 + d4*d5, data = dhistsize)
+allinterlm <- lm(amount ~ d1*d2 + d1*d3 + d1*d4 + d1*d5 + d2*d3 + d2*d4 + d2*d5 + d3*d4 + d3*d5 + d4*d5, data = dhist5size)
 summary(allinterlm)
-dhistsize <- dhistsize %>% mutate(d12 = d2 - d1) %>% mutate(d23 = d3 - d2) %>% mutate(d34 = d4 - d3) %>% mutate(d45 = d5 -d4)
-distlm <- lm(amount ~ d1 + d12  +  d23 + d34  + d45, data = dhistsize)
+dhist5size <- dhist5size %>% mutate(d12 = d2 - d1) %>% mutate(d23 = d3 - d2) %>% mutate(d34 = d4 - d3) %>% mutate(d45 = d5 -d4)
+distlm <- lm(amount ~ d1 + d12  +  d23 + d34  + d45, data = dhist5size)
 summary(distlm)
 texreg(list(alllm, minlm, medianlm, maxlm))
 plot(distlm)
-texreg(allinterlm)
+summary(allinterlm)
+texreg(distlm)
+```
+
+```{r}
+min10lm <- lm(amount ~ d1, data = dhist10size)
+summary(min10lm)
+median10lm <- lm(amount ~ I((d5 + d6)/2), data = dhist10size)
+summary(median10lm)
+max10lm <- lm(amount ~ d10, data = dhist10size)
+summary(max10lm)
+all10lm <- lm(amount ~ d1 + d2 + d3 + d4 + d5 + d6 + d7 + d8 + d9 + d10, data = dhist10size)
+summary(all10lm)
 ```
 
 
+
 ```{r}
-skewvar <- lm(amount ~ histavg+ skewness + variance + d1 + seedvalue, data = dhistsize)
-skewvar2 <- lm(amount ~ d1*skewness*variance*histavg, data = dhistsize)
+skewvar <- lm(amount ~ histavg + skewc + varc + kurtc +  d1, data = dhist10size)
+skewvar2 <- lm(amount ~ d1*skewc*varc*histavg, data = dhist10size)
 summary(skewvar2)
 texreg(skewvar)
 ```

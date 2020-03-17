@@ -15,17 +15,16 @@ library(dplyr)
 
 
 ```{r}
-nrow(campatt1)
-nrow(dhist1)
-mean(dhist1$amount)
-median(dhist1$amount)
-mean(as.integer(dhist1$is_anonymous))#hm why no work? 
-mean(campatt1$nonprofit)
-mean(na.omit(dhist1$isfemale))
+nrow(campatt)
+nrow(dhist)
+mean(dhist$amount)
+median(dhist$amount)
+mean(as.integer(dhist$is_anonymous))
+mean(dhist$nonprofit.)
 ```
 
 ```{r}
-anonhist1 <- dhist1 %>% filter(is_anonymous == 1)
+anonhist <- dhist %>% filter(is_anonymous == "TRUE")
 mean(anonhist1$amount)
 median(anonhist1$amount)
 ```
@@ -41,11 +40,33 @@ ggplot(campatt1, aes(x = endprog)) + geom_histogram(aes(y=..density..), colour="
 ```
 
 ```{r}
-ggplot(dhist1, aes(x = amount)) + geom_histogram(binwidth = 5) + xlim(0,150) 
+ggplot(dhist, aes(x = amount)) + geom_histogram(binwidth = 5, color="steelblue", fill="white") + xlim(0,120) + ggtitle("Distribution of Amounts Donated")
+ggsave("amtdist.png")
 ```
 
 ```{r}
-ggplot(dhist1, aes(x = amount, color = gender))  +
-  geom_histogram(binwidth = 5, fill= "white", alpha=0.5, position="identity") + xlim(0,150) 
+ggplot(dhist, aes(x = amount)) + geom_histogram(binwidth = 5, color="steelblue", fill="white") + xlim(0,120) + ggtitle("Distribution of Amounts Donated")
+ggsave("amtdist.png")
 ```
+
+
+
+```{r}
+ggplot(dhist, aes(x = amount, color = as.factor(is_female)))  +
+  geom_histogram(binwidth = 5, alpha=0.5, fill = "white", position="identity") + xlim(0,150) 
+```
+
+
+```{r}
+ggplot(dhist, aes(x = as.factor(is_anonymous), y = amount, color = as.factor(is_anonymous)))  +
+  geom_boxplot() + ylim(0,150)
+```
+
+```{r}
+ggplot(dhist, aes(x = month, y = amount, color = month))  +
+  geom_boxplot() + ylim(0,150)
+```
+
+
+
 

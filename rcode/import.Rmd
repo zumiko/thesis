@@ -167,12 +167,17 @@ lapply_read_csv_bind_rows <- function(path, pattern = "*.csv") {
 
 ```{r}
 #start with time series for donations
-nrow(dhist1)
+nrow(dhist1) 
+nrow(dhist2)
+nrow(dhist3)
+nrow(dhist4)
+nrow(dhist1)  + nrow(dhist2) + nrow(dhist3) + nrow(dhist4)
 dhist1$is_anonymous <- as.factor(dhist1$is_anonymous)
 dhist1$is_offline <- as.factor(dhist1$is_offline)
 dhist1$verified <- as.factor(dhist1$verified)
 dhist <- bind_rows(dhist1, dhist2, dhist3, dhist4)
-
+dhist <- dhist[!duplicated(dhist$donation_id), ]
+nrow(dhist)
 #ok camp attributes time 
 campatt <- bind_rows(campatt1, campatt2, campatt3, campatt4)
 

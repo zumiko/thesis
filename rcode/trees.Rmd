@@ -29,45 +29,38 @@ lagsort<- function(lagrow){
 ```
 
 ```{r}
-asdf <- lm(amount ~ d1 + variance + skewness, data = dhistsize)
-```
+dhist5size <- dhist5 %>% dplyr::filter(!is.na(lag1) & !is.na(lag2) &  !is.na(lag3)  & !is.na(lag4) &  !is.na(lag5))
 
-
-```{r}
-dhistsize <- na.omit(dhist) %>%
-  ungroup(as.factor(urlsolid)) %>% 
-  filter(lagtype == "five") %>% 
-  select(lag1,lag2,lag3,lag4,lag5) 
-
-
-variance <- apply(dhistsize[,23:27], 1, var)
-skew <- apply(dhistsize[,23:27], 1, skewness)
-dhistsize$variance <- variance
-dhistsize$skewness <- skew
-
-lagsrt <- apply(dhistsize,1, lagsort) 
+lagsrt <- apply(dhist5size[,19:23],1, sort) 
 tlagsrt <- t(lagsrt)
 tlagsrt <- as.data.frame(tlagsrt)
-dhistsize$d1 <- tlagsrt[,1]
-dhistsize$d2 <- tlagsrt[,2]
-dhistsize$d3 <- tlagsrt[,3]
-dhistsize$d4 <- tlagsrt[,4]
-dhistsize$d5 <- tlagsrt[,5]
-head(dhistsize)
+dhist5size$d1 <- tlagsrt[,1]
+dhist5size$d2 <- tlagsrt[,2]
+dhist5size$d3 <- tlagsrt[,3]
+dhist5size$d4 <- tlagsrt[,4]
+dhist5size$d5 <- tlagsrt[,5]
+
+
+dhist10size <- dhist10 %>% dplyr::filter(!is.na(lag1) & !is.na(lag2) &  !is.na(lag3)  & !is.na(lag4) &  !is.na(lag5), !is.na(lag6) & !is.na(lag7) &  !is.na(lag8)  & !is.na(lag9) &  !is.na(lag10))
+
+lagsrt10 <- apply(dhist10size[,19:28],1, sort) 
+tlagsrt10 <- t(lagsrt10)
+tlagsrt10 <- as.data.frame(tlagsrt10)
+dhist10size$d1 <- tlagsrt10[,1]
+dhist10size$d2 <- tlagsrt10[,2]
+dhist10size$d3 <- tlagsrt10[,3]
+dhist10size$d4 <- tlagsrt10[,4]
+dhist10size$d5 <- tlagsrt10[,5]
+dhist10size$d6 <- tlagsrt10[,6]
+dhist10size$d7 <- tlagsrt10[,7]
+dhist10size$d8 <- tlagsrt10[,8]
+dhist10size$d9 <- tlagsrt10[,9]
+dhist10size$d10 <- tlagsrt10[,10]
+check10 <- dhist10size %>% select(donation_id, amount, lag1, lag2, lag3, lag4, lag5, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10)
 
 #put them in order of smallest to greatest 
 #d_1, d_2, d_3, d_4, d_5 
-
-dhistomit <- na.omit(dhist) %>%
-  ungroup(as.factor(urlsolid)) %>%
-  filter(lagtype == "five") %>% select(-lag1, -lag2, -lag3, -lag4, -lag5)
-dhistsize <- cbind(dhistomit,dhistsize)
-
-
 ```
-
-
-
 
 
 now time for the basic tree model
@@ -80,8 +73,8 @@ library(randomForest)
 
 
 ```{r}
-dhistree10 <- na.omit(dhist) %>% dplyr::filter(lagtype == "ten") %>% mutate(amount = unlist(amount))
-dhistree <- dhistree10 %>% select(amount, skewness, variance, histavg, is_female, lag1)
+dhistree10 <- dhist10size %>% mutate(amount = unlist(amount))
+dhistree <- dhistree10 %>% select(amount, skewc, varc, histavg, kurtc, is_female, d1, d10)
 treebasic <-  tree(formula = amount ~. , data = dhistree)
 summary(treebasic)
 plot(treebasic)
@@ -89,15 +82,32 @@ text(treebasic ,pretty=0)
 ```
 
 ```{r}
-treeboost = gbm(formula = amount ~. , data = dhistree,distribution=
-"gaussian",n.trees=1000, interaction.depth = 4)
-summary(treeboost)
-par(mfrow=c(1,2))
-plot(treeboost ,i="skewness") 
+treeboost = gbm(formula = amount ~ varc + histavg + skewc + kurtc + varc + is_female + d1 + d10, data = dhistree, distribution="gaussian",n.trees=1000, interaction.depth = 3)
+
+m<- summary(treeboost)
+m %>% 
+  mutate(var = fct_reorder(var, rel.inf)) %>%
+  ggplot(aes(x= var, y = rel.inf)) + geom_bar(stat = "identity", color="steelblue", fill="white") +
+  coord_flip() 
+ggsave("relinf.png")
+
+
+mean((yhat.boost - dhistree$amount)**2) #mse
+yhat.boost=predict(treeboost, newdata=dhistree, n.trees=1000)
+
+par(mfrow=c(1,2)) #can change shrinkage parameter (lambda) if want to 
+plot(treeboost ,i="skewness") #maginal effect of the variable after integrating out the other variables 
+plot(treeboost,i="histavg")
 plot(treeboost,i="variance")
 plot(treeboost,i=c(1,2,3), return.grid = TRUE)
+plot(treeboost,i=c(1,2,3))
 ```
 
-
-
+#add to the linear model 
+```{r}
+dhistree$treepred <- yhat.boost
+reg <- lm(amount ~ treepred, data = dhistree)
+summary(reg)
+plot(reg)
+```
 

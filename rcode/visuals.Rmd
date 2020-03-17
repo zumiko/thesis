@@ -46,15 +46,16 @@ ggplot(mapdf,aes(longitude,latitude)) +
 dfc$zip<- clean.zipcodes(dfc$zip)
 data(zipcode)
 mapdf<- merge(dfc, zipcode, by='zip')
-countdf <- mapdf %>% select(urlsolid, zip) %>% group_by(zip) %>%  summarise(count = n_distinct(urlsolid))
+countdf <- mapdf %>% select(urlsolid, donation_id, zip) %>% group_by(zip) %>%  summarise(campaigns = n_distinct(urlsolid), donations = n_distinct(donation_id)) 
 mapdf <- left_join(mapdf, countdf, by = "zip")
 
 us<-map_data('state')
 
 ggplot(mapdf,aes(longitude,latitude)) +
   geom_polygon(data=us,aes(x=long,y=lat,group=group),color='grey',fill=NA) +
-  geom_point(aes(color = count), alpha=.25) +
-  xlim(-125,-65)+ylim(23,50)
+  geom_point(aes(color = campaigns, size = donations)) +
+  xlim(-125,-65) + ylim(23,50)
+ggsave("map.png")
 ```
 
 

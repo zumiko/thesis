@@ -17,22 +17,47 @@ library(texreg)
 
 
 ```{r}
-dhistfe1 <- dhist1 %>% ungroup(urlsolid)
-dhistfe1$createdxts <- make.time.unique(dhistfe1$createdxts)
-dhistfe1$id <- seq.int(nrow(dhistfe1))
-dhistfe1$createdxtsid  <- paste(dhistfe1$createdxts, dhistfe1$id, sep="_")
-dhistpanel1 <- pdata.frame(dhistfe1, index = c("urlsolid", "createdxtsid"), drop.index = TRUE)
-anchorfe <- plm(amount ~ histavg, 
-                    data = dhistpanel1, 
+dhistfe <- dhist %>% ungroup(urlsolid)
+#dhistfe$createdxts <- make.time.unique(dhistfe$createdxts)
+dhistfe$id <- seq.int(nrow(dhistfe))
+dhistfe$createdxtsid  <- paste(dhistfe$createdxts, dhistfe$id, sep="_")
+#dhistpanel <- plm.data(dhistfe, index = c("urlsolid", "createdxtsid"))
+dhistpanel <- pdata.frame(dhistfe, index = c("urlsolid", "createdxtsid"), drop.index = TRUE)
+anchorfe <- plm(amount ~ histavg*lagtype, 
+                    data = dhistpanel, 
                     model = "within")
-anchorfe2 <- plm(amount ~ histavg + is_female + histavg*is_female, 
-                    data = dhistpanel1, 
+anchorfe2 <- plm(amount ~ histavg*lagtype + is_female + histavg*is_female, 
+                    data = dhistpanel, 
                     model = "within")
-anchorfe3 <- plm(amount ~ histavg + is_anonymous + histavg*is_anonymous, 
-                    data = dhistpanel1, 
+anchorfe3 <- plm(amount ~ histavg*lagtype + is_anonymous + histavg*is_anonymous, 
+                    data = dhistpanel, 
                     model = "within")
 summary(anchorfe)
-#texreg(list(anchorfe, anchorfe3))
+texreg(list(anchorfe, anchorfe2, anchorfe3))
 ```
 
-#use the Hausmann test phtest to determine whether fixed effects or random effects
+```{r}
+dhist5sizefe <- dhist5size %>% ungroup(urlsolid)
+#dhist5sizefe$createdxts <- make.time.unique(dhistsizefe$createdxts)
+dhist5sizefe$id <- seq.int(nrow(dhist5sizefe))
+dhist5sizefe$createdxtsid  <- paste(dhist5sizefe$createdxts, dhist5sizefe$id, sep="_")
+dhist5sizepanel <- pdata.frame(dhist5sizefe, index = c("urlsolid", "createdxtsid"), drop.index = TRUE)
+#anchorfe <- plm(amount ~ histavg*lagtype, 
+                    #data = dhist5sizepanel, 
+                    #model = "within")
+#anchorfe2 <- plm(amount ~ histavg*lagtype + is_female + histavg*is_female, 
+                    #data = dhist5sizepanel, 
+                    #model = "within")
+#anchorfe3 <- plm(amount ~ histavg*lagtype + is_anonymous + histavg*is_anonymous, 
+                    #data = dhistsizepanel, 
+                   # model = "within")
+anchorfe4 <- plm(amount ~ d1 + d2 + d3 + d4 + d5, 
+                    data = dhist5sizepanel, 
+                    model = "within")
+anchorfe5 <- plm(amount ~d1*d2 + d1*d3 + d1*d4 + d1*d5 + d2*d3 + d2*d4 + d2*d5 + d3*d4 + d3*d5 + d4*d5, 
+                 data = dhist5sizepanel,  
+                 model = "within") 
+texreg(anchorfe4)
+#summary(anchorfe5)
+```
+

@@ -101,7 +101,7 @@ leaddate <- function(dhist){
   dhist <- dhist  %>% 
     group_by(urlsolid) %>% 
     arrange(createdxts, .by_group = TRUE) %>%  #don't break original grouping
-    mutate(createdxtslead = lead(createdxts,n = 1L))
+    mutate(createdxtslead = dplyr::lead(createdxts,n = 1L))
   dhist <- dhist %>% 
     mutate(timeafter = difftime(createdxtslead, createdxts, units = "secs")) #get seconds until next donation
   dhist <- dhist %>% dplyr::filter(urlsolid != "#NAME?") #like 35 of these
@@ -179,6 +179,8 @@ f <- laglead(e)
 g <- sumstats(f)
 
 dhist <- cleandhist(dhist)
+dhisttest <- cleandhist(dhisttest)
+write.csv(dhisttest,'dhist5to8.csv')
 
 head(f,20)
 
@@ -222,14 +224,15 @@ cleanattributes <- function(dfatt){
 
 ```{r}
 campatt <- cleanattributes(campatt)
+campatt<- campatt[!duplicated(campatt$urlsolid), ]
 nrow(campatt)
 ```
 
 #Merge important parts of dhist and campatt
 
 ```{r}
-dfc <- left_join(dhist, campatt, by = "urlsolid")
-dfc <- dfc %>% select(-verified, -lag2, -lag3, -lag4, -lag5, -description1, -description2, -description3, -nonprofit.)
+dfc <- left_join(dhist, campatt, by = "urlsolid") 
+dfc <- dfc %>% select( -description1, -description2, -description3, -nonprofit.)
 ```
 
 

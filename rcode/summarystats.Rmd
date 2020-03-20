@@ -16,11 +16,12 @@ library(dplyr)
 
 ```{r}
 nrow(campatt)
-nrow(dhist)
-mean(dhist$amount)
-median(dhist$amount)
-mean(as.integer(dhist$is_anonymous))
-mean(dhist$nonprofit.)
+nrow(dhistall)
+mean(dhistall$amount)
+sum(dhistall$amount)
+median(dhistall$amount)
+mean(as.integer(dhistall$is_anonymous))
+mean(dhistall$nonprofit.)
 ```
 
 ```{r}
@@ -28,6 +29,18 @@ anonhist <- dhist %>% filter(is_anonymous == "TRUE")
 mean(anonhist1$amount)
 median(anonhist1$amount)
 ```
+
+```{r}
+count <- dhist %>% dplyr::filter(amount > 500)
+nrow(count)/ nrow(dhist)
+dhist <- dhist %>% dplyr::mutate(amountcensored = case_when(
+     amount > 500 ~ 500,
+    TRUE ~ amount))
+max(dhist$amount)
+max(dhistcensor$amount)
+```
+
+
 
 
 ```{r}
@@ -40,7 +53,7 @@ ggplot(campatt1, aes(x = endprog)) + geom_histogram(aes(y=..density..), colour="
 ```
 
 ```{r}
-ggplot(dhist, aes(x = amount)) + geom_histogram(binwidth = 5, color="steelblue", fill="white") + xlim(0,120) + ggtitle("Distribution of Amounts Donated")
+ggplot(dhistall, aes(x = amount)) + geom_histogram(binwidth = 5, color="steelblue", fill="white") + xlim(0,120) + ggtitle("Distribution of Amounts Donated")
 ggsave("amtdist.png")
 ```
 

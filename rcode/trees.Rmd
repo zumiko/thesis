@@ -63,6 +63,30 @@ check10 <- dhist10size %>% select(donation_id, amount, lag1, lag2, lag3, lag4, l
 ```
 
 
+
+```{r}
+dhist10sizetest <- dhist10test %>% dplyr::filter(!is.na(lag1) & !is.na(lag2) &  !is.na(lag3)  & !is.na(lag4) &  !is.na(lag5), !is.na(lag6) & !is.na(lag7) &  !is.na(lag8)  & !is.na(lag9) &  !is.na(lag10))
+
+lagsrt10test <- apply(dhist10sizetest[,20:29],1, sort) 
+tlagsrt10test <- t(lagsrt10test)
+tlagsrt10test <- as.data.frame(tlagsrt10test)
+dhist10sizetest$d1 <- tlagsrt10test[,1]
+dhist10sizetest$d2 <- tlagsrt10test[,2]
+dhist10sizetest$d3 <- tlagsrt10test[,3]
+dhist10sizetest$d4 <- tlagsrt10test[,4]
+dhist10sizetest$d5 <- tlagsrt10test[,5]
+dhist10sizetest$d6 <- tlagsrt10test[,6]
+dhist10sizetest$d7 <- tlagsrt10test[,7]
+dhist10sizetest$d8 <- tlagsrt10test[,8]
+dhist10sizetest$d9 <- tlagsrt10test[,9]
+dhist10sizetest$d10 <- tlagsrt10test[,10]
+
+
+dhist10sizetest <- sumstats(dhist10sizetest)
+
+```
+
+
 now time for the basic tree model
 
 ```{r}
@@ -74,15 +98,21 @@ library(randomForest)
 
 ```{r}
 dhistree10 <- dhist10size %>% mutate(amount = unlist(amount))
-dhistree <- dhistree10 %>% select(amount, skewc, varc, histavg, kurtc, is_female, d1, d10)
-treebasic <-  tree(formula = amount ~. , data = dhistree)
+dhistree <- dhistree10 %>% dplyr::select(amount, skewc, varc, histavg, kurtc, is_female, d1, d10)
+dhistree <- dhistree %>% dplyr::mutate(amountcensored = case_when(
+     amount > 500 ~ 500,
+    TRUE ~ amount))
+treebasic <-  tree(formula = amountcensored ~skewc + varc + histavg + kurtc + is_female + d1 + d10 , data = dhistree)
 summary(treebasic)
 plot(treebasic)
 text(treebasic ,pretty=0)
+ggsave("simpletree.png")
 ```
 
 ```{r}
-treeboost = gbm(formula = amount ~ varc + histavg + skewc + kurtc + varc + is_female + d1 + d10, data = dhistree, distribution="gaussian",n.trees=1000, interaction.depth = 3)
+treeboost = gbm(formula = amount ~ histavg + skewc + kurtc + varc + is_female + d1 + d10, data = dhistree, distribution="gaussian",n.trees=1000, interaction.depth = 4)
+
+treeboostcen = gbm(formula = amountcensored ~ histavg + skewc + kurtc + varc + is_female + d1 + d10, data = dhistree, distribution="gaussian",n.trees=1000, interaction.depth = 4)
 
 m<- summary(treeboost)
 m %>% 
@@ -94,20 +124,31 @@ ggsave("relinf.png")
 
 mean((yhat.boost - dhistree$amount)**2) #mse
 yhat.boost=predict(treeboost, newdata=dhistree, n.trees=1000)
+yhat.boost.test =predict(treeboost, newdata=dhist10sizetest, n.trees=1000)
 
 par(mfrow=c(1,2)) #can change shrinkage parameter (lambda) if want to 
-plot(treeboost ,i="skewness") #maginal effect of the variable after integrating out the other variables 
-plot(treeboost,i="histavg")
-plot(treeboost,i="variance")
+plot(treeboost ,i="d1", return.grid = TRUE) #maginal effect of the variable after integrating out the other variables
+yo<- plot(treeboostcen,i="d1", return.grid = TRUE)
+ggplot(yo, aes(x= d1, y = y)) + geom_line() + xlim(0,250)
+ya<- plot(treeboostcen,i="histavg", return.grid = TRUE)
+ggplot(ya, aes(x= histavg, y = y)) + geom_line() + xlim(0,1000)
+ggsave("histavgmarg.png")
+yb <- plot(treeboostcen,i="varc", return.grid = TRUE)
+ggplot(yb, aes(x= varc, y = y)) + geom_line() + xlim(0,317764122)
 plot(treeboost,i=c(1,2,3), return.grid = TRUE)
 plot(treeboost,i=c(1,2,3))
 ```
 
 #add to the linear model 
 ```{r}
+dhist10sizetest$treepred <- yhat.boost.test
 dhistree$treepred <- yhat.boost
 reg <- lm(amount ~ treepred, data = dhistree)
-summary(reg)
-plot(reg)
+regtest <- lm(amount ~ treepred, data = dhist10sizetest)
+regnormal <- lm(amount ~ histavg + skewc + kurtc + varc + is_female + d1 + d10, data = dhist10sizetest)
+summary(regtest)
+summary(regnormal)
+texreg(regtest)
+texreg(regnormal)
 ```
 

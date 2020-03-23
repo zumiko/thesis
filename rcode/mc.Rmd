@@ -56,6 +56,12 @@ summary(dhistmc$niceval)
 
 
 ```{r}
-dhist[duplicated(profile_url)]
+profurl <- dhist %>% group_by(profile_url) %>% select(profile_url, name, amount, urlsolid) %>% arrange(profile_url)
+head(profurl)
+```
+
+
+```{r}
+
 ```
 

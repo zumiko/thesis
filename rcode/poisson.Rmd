@@ -12,7 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(xts)
-
+  dhist <- dhist %>% mutate(timeafter = difftime(createdxts, createdxtslead, units = "secs"))
+    dhist <- dhist %>% mutate(timeafter = difftime(createdxts, createdxtslead, units = "secs"))
 ```
 
 
@@ -28,13 +29,6 @@ dhist1 <- dhist1 %>% mutate(createdxts = fixdate(created_at))
 # yo remeber to use the fcn as.POSIXlt to convert to an time object where you can extract different parts
 #helpful ref: 
 ```
-
-
-```{r}
-
-```
-
-
 
 
 ```{r}

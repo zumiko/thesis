@@ -90,7 +90,7 @@ campatt4 <- tbl_df(campatt4)
 ```{r}
 ## Read in data 
 pathhist5 <- "/Users/CJ/Desktop/thesisdata/p5/donationhistory.csv" 
-pathzip5 <- "/Users/CJ/Desktop/thesisdata/p5/campsbyzip3.csv" 
+pathzip5 <- "/Users/CJ/Desktop/thesisdata/p5/campsbyzip5.csv" 
 pathattributes5 <- "/Users/CJ/Desktop/thesisdata/p5/campattributes.csv" 
 
 dhist5 <- read.csv(pathhist5)
@@ -107,7 +107,7 @@ campatt5 <- tbl_df(campatt5)
 ```{r}
 ## Read in data 
 pathhist6 <- "/Users/CJ/Desktop/thesisdata/p6/donationhistory.csv" 
-pathzip6 <- "/Users/CJ/Desktop/thesisdata/p6/campsbyzip2.csv" 
+pathzip6 <- "/Users/CJ/Desktop/thesisdata/p6/campsbyzip6.csv" 
 pathattributes6 <- "/Users/CJ/Desktop/thesisdata/p6/campattributes.csv" 
 
 dhist6 <- read.csv(pathhist6)
@@ -125,7 +125,7 @@ campatt6 <- tbl_df(campatt6)
 ```{r}
 ## Read in data 
 pathhist7 <- "/Users/CJ/Desktop/thesisdata/p7/donationhistory.csv" 
-pathzip7 <- "/Users/CJ/Desktop/thesisdata/p7/campsbyzip3.csv" 
+pathzip7 <- "/Users/CJ/Desktop/thesisdata/p7/campsbyzip7.csv" 
 pathattributes7 <- "/Users/CJ/Desktop/thesisdata/p7/campattributes.csv" 
 
 dhist7 <- read.csv(pathhist7)
@@ -142,7 +142,7 @@ campatt7 <- tbl_df(campatt7)
 ## Read in data 
 
 pathhist8 <- "/Users/CJ/Desktop/thesisdata/p8/donationhistory.csv" 
-pathzip8 <- "/Users/CJ/Desktop/thesisdata/p8/campsbyzip4.csv" 
+pathzip8 <- "/Users/CJ/Desktop/thesisdata/p8/campsbyzip8.csv" 
 pathattributes8 <- "/Users/CJ/Desktop/thesisdata/p8/campattributes.csv" 
 
 dhist8 <- read.csv(pathhist4)
@@ -167,25 +167,38 @@ lapply_read_csv_bind_rows <- function(path, pattern = "*.csv") {
 
 ```{r}
 #start with time series for donations
-nrow(dhist1) 
-nrow(dhist2)
-nrow(dhist3)
-nrow(dhist4)
-nrow(dhist1)  + nrow(dhist2) + nrow(dhist3) + nrow(dhist4)
 dhist1$is_anonymous <- as.factor(dhist1$is_anonymous)
 dhist1$is_offline <- as.factor(dhist1$is_offline)
 dhist1$verified <- as.factor(dhist1$verified)
 dhist <- bind_rows(dhist1, dhist2, dhist3, dhist4)
 dhist <- dhist[!duplicated(dhist$donation_id), ]
-nrow(dhist)
+nrow(dhist) #has 423673
 #ok camp attributes time 
 campatt <- bind_rows(campatt1, campatt2, campatt3, campatt4)
-
+nrow(campatt)
 #zipcodes 
 zips <- bind_rows(zip1, zip2, zip3, zip4)
 nrow(zips)
 ```
 
+```{r}
+#start with time series for donations
+dhisttest <- bind_rows(dhist5, dhist6, dhist7, dhist8)
+nrow(dhisttest)
+dhisttest <- dhisttest[!duplicated(dhisttest$donation_id), ]
+nrow(dhisttest) #has 426091
+#ok camp attributes time 
+campatttest <- bind_rows(campatt5, campatt6, campatt7, campatt8)
+nrow(campatttest)
+#zipcodes 
+zipstest <- bind_rows(zip1, zip2, zip3, zip4)
+nrow(zips)
+```
 
 
+```{r}
+dhistall <- bind_rows(dhist,dhisttest)
+mean(dhist$amount)
+mean(dhisttest$amount)
+```
 

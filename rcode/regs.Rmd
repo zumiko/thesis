@@ -21,19 +21,28 @@ dhist <- tbl_df(df)
 #mean reg
 #l <- dfc[duplicated(dfc$donation_id),]
 dhist <- dhist %>% dplyr::filter(lagtype != "unknown") %>% mutate(amountln = log(amount))
+dfc <- dfc %>% dplyr::filter(lagtype != "unknown")
 dhist5 <- dhist %>% dplyr::filter(lagtype == "five")
 dhist10 <- dhist %>% dplyr::filter(lagtype == "ten")
+
+dhisttest <- dhisttest %>% dplyr::filter(lagtype != "unknown") %>% mutate(amountln = log(amount))
+dhist5test <- dhisttest %>% dplyr::filter(lagtype == "five")
+dhist10test <- dhisttest %>% dplyr::filter(lagtype == "ten")
+
 dfc <- dfc %>% filter(lagtype != "unknown")
 mc <- lm(amount ~ lag1 + lag2 + lag3 + lag4 + lag5 + lag6 + lag7 + lag8 + lag9, data = dhist5size)
 mc2 <- lm(amount ~ lag1  , data = dhist5size)
 meanlm <- lm(amount ~ histavg*lagtype , data = dhist)
-meanlm1ln <- lm(amountln ~ histavg*lagtype , data = dhist)
+meanlmcen <- lm(amountcensored ~ histavg*lagtype , data = dhist)
+#meanlm1ln <- lm(amountln ~ histavg*lagtype , data = dhist)
 meanlm2 <- lm(amount ~ histavg*lagtype + is_anonymous*histavg , data = dhist)
 meanlm3 <- lm(amount ~ histavg*lagtype + is_female*histavg , data = dhist)
+meanlm4 <- lm(amount ~ histavg*lagtype + nonprofit*histavg , data = dfc)
 #meanlm4 <- lm(amount ~ histavg*lagtype + nonprofit*histavg, data = dfc)
-texreg(list(meanlm, meanlm2, meanlm3))
+texreg(list(meanlm, meanlm2, meanlm3, meanlm4))
 summary(mc)  
 summary(mc2)
+summary(meanlmcen)
 summary(meanlm)
 plot(meanlm1ln)   
 plot(meanlm)  
@@ -41,7 +50,7 @@ plot(meanlm)
 
 ```{r}
 #var,skew, avg
-meanprop<- lm(amount ~ histavg*skewc + skewc+ kurtc , data = dhist)
+meanprop<- lm(amount ~ histavg*skewc + skewc+ kurtc + lag1 , data = dhist)
 summary(meanprop)
 ```
 
@@ -63,7 +72,7 @@ texreg(anonlm)
 
 ```{r}
 #combo 
-alllm <- lm(amount ~ histavg + anonprop +  gender, data = dhist2, family = "binomial")
+alllm <- lm(amount ~ histavg + anonprop +  gender, data = dhist)
 summary(alllm)
 #texreg(alllm)
 ```

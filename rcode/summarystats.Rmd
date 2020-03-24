@@ -15,20 +15,36 @@ library(dplyr)
 
 
 ```{r}
-nrow(campatt)
-nrow(dhistall)
-mean(dhistall$amount)
-nrow(dhistall)
-sum(dhistall$amount)
-median(dhistall$amount)
-mean(as.integer(dhistall$is_anonymous))
-mean(dhistall$nonprofit.)
+df <- read.csv("dhist1to4.csv")
+dhist <- tbl_df(df)
+
+df2 <- read.csv("dhist5to8.csv")
+dhisttest <- tbl_df(df2)
+
+dhistall <- bind_rows(dhist,dhisttest)
 ```
 
+
 ```{r}
-anonhist <- dhistall %>% filter(is_anonymous == "TRUE")
-mean(anonhist1$amount)
-median(anonhist1$amount)
+
+nrow(dhistall)
+mean(dhistall$amount)
+sum(dhistall$amount)
+median(dhistall$amount)
+
+anonhist <- dhistall %>% dplyr::filter(is_anonymous == 1)
+nrow(anonhist)
+mean(anonhist$amount)
+
+malehist <- dhistall %>% dplyr::filter(gender == "male")
+nrow(malehist)
+mean(malehist$amount)
+
+femalehist <- dhistall %>% dplyr::filter(gender == "female")
+nrow(femalehist)
+mean(femalehist$amount)
+
+
 ```
 
 ```{r}
@@ -54,7 +70,7 @@ ggplot(campatt1, aes(x = endprog)) + geom_histogram(aes(y=..density..), colour="
 ```
 
 ```{r}
-ggplot(dhistall, aes(x = amount)) + geom_histogram(binwidth = 5, color="steelblue", fill="white") + xlim(0,120) + ggtitle("Distribution of Amounts Donated")
+ggplot(dhistall, aes(x = amount)) + geom_histogram(binwidth = 5, color="steelblue", fill="white", position = "identity") + xlim(0,120) 
 ggsave("amtdist.png")
 ```
 
@@ -66,8 +82,8 @@ ggsave("amtdist.png")
 
 
 ```{r}
-ggplot(dhist, aes(x = amount, color = as.factor(is_female)))  +
-  geom_histogram(binwidth = 5, alpha=0.5, fill = "white", position="identity") + xlim(0,150) 
+ggplot(dhistall, aes(x = amount, fill = as.factor(gender), color = as.factor(gender)))  +
+  geom_histogram(binwidth = 5, alpha=0.5, position="dodge") + xlim(0,150) 
 ```
 
 

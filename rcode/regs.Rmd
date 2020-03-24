@@ -10,10 +10,6 @@ library(texreg)
 library(dplyr)
 ```
 
-```{r}
-df <- read.csv("dhist1to4.csv")
-dhist <- tbl_df(df)
-```
 
 
 #https://drsimonj.svbtle.com/visualising-residuals for looking at residuals
@@ -33,25 +29,30 @@ dfc <- dfc %>% filter(lagtype != "unknown")
 mc <- lm(amount ~ lag1 + lag2 + lag3 + lag4 + lag5 + lag6 + lag7 + lag8 + lag9, data = dhist5size)
 mc2 <- lm(amount ~ lag1  , data = dhist5size)
 meanlm <- lm(amount ~ histavg*lagtype , data = dhist)
+meanlm5 <- lm(amount ~ histavg , data = dhist5)
+meanlm10 <- lm(amount ~ histavg , data = dhist10)
 meanlmcen <- lm(amountcensored ~ histavg*lagtype , data = dhist)
 #meanlm1ln <- lm(amountln ~ histavg*lagtype , data = dhist)
-meanlm2 <- lm(amount ~ histavg*lagtype + is_anonymous*histavg , data = dhist)
+meanlm2 <- lm(amount ~ histavg*lagtype + is_anonymous*histavg, data = dhist)
 meanlm3 <- lm(amount ~ histavg*lagtype + is_female*histavg , data = dhist)
 meanlm4 <- lm(amount ~ histavg*lagtype + nonprofit*histavg , data = dfc)
 #meanlm4 <- lm(amount ~ histavg*lagtype + nonprofit*histavg, data = dfc)
 texreg(list(meanlm, meanlm2, meanlm3, meanlm4))
+texreg(list(meanlm5, meanlm10))
 summary(mc)  
 summary(mc2)
 summary(meanlmcen)
-summary(meanlm)
+summary(meanlm2)
 plot(meanlm1ln)   
 plot(meanlm)  
 ```
 
 ```{r}
 #var,skew, avg
-meanprop<- lm(amount ~ histavg*skewc + skewc+ kurtc + lag1 , data = dhist)
-summary(meanprop)
+timeafter<- lm(timeafter ~ histavg , data = dhist5)
+timeafter2<- lm(timeafter ~ histavg , data = dhist10)
+summary(timeafter)
+summary(timeafter2)
 ```
 
 

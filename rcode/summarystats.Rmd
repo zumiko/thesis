@@ -11,15 +11,28 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(dplyr)
+library(ggplot2)
+library(readr)
+library(tidyverse)
+library(lubridate)
+library(quantmod)
+library(ggpointdensity)
 ```
 
 
 ```{r}
 df <- read.csv("dhist1to4.csv")
 dhist <- tbl_df(df)
+dhist <- dhist %>% mutate(dow = weekdays(createdxts)) 
+dhist <- dhist %>% mutate(month = months(createdxts)) 
+dhist <- dhist %>% mutate(year = isoyear(createdxts)) 
+dhist <- dhist %>% mutate(hourofday = hour(createdxts))
+dhist <- dhist %>% group_by(urlsolid) %>% mutate(seedmoney= cumsum(amount) - amount)
+
 
 df2 <- read.csv("dhist5to8.csv")
 dhisttest <- tbl_df(df2)
+dhisttest <- sumstats(dhisttest)
 
 dhistall <- bind_rows(dhist,dhisttest)
 ```
@@ -83,7 +96,7 @@ ggsave("amtdist.png")
 
 ```{r}
 ggplot(dhistall, aes(x = amount, fill = as.factor(gender), color = as.factor(gender)))  +
-  geom_histogram(binwidth = 5, alpha=0.5, position="dodge") + xlim(0,150) 
+  geom_histogram(binwidth = 5, alpha=0.5, position="dodge") + xlim(0,120) 
 ```
 
 
@@ -93,10 +106,40 @@ ggplot(dhist, aes(x = as.factor(is_anonymous), y = amount, color = as.factor(is_
 ```
 
 ```{r}
-ggplot(dhist, aes(x = month, y = amount, color = month))  +
+dhist$month <- fct_relevel(dhist$month, levels = c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"))
+                           
+ggplot(dhist, aes(x = month, y = amount))  +
   geom_boxplot() + ylim(0,150)
+
+ggsave("monthdonations.png", width = 7, height = 4, units = "in")
 ```
 
 
+```{r}
+ggplot(dhist, aes(x = dow, y = amount))  +
+  geom_boxplot() + ylim(0,150)
+```
 
+```{r}
+ggplot(dhist, aes(x = hourofday, y = amount)) + 
+  geom_point(alpha = 0.005, position = "jitter") + 
+  geom_density_2d() + 
+  ylim(0,250)
+```
+
+```{r}
+ggplot(dhist, aes(x = hourofday, y = amount)) +
+  geom_pointdensity(position = "jitter") +
+  scale_color_viridis_c() + 
+  ylim(0,250)
+```
+
+
+```{r}
+ggplot(dhist, aes(x = hourofday, y = amount)) +
+  geom_pointdensity() +
+  scale_color_viridis_c() + 
+  ylim(0,250)
+ggsave("timeofdaydonations.png", width = 7, height = 4, units = "in")
+```
 

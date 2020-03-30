@@ -14,8 +14,6 @@ Here's where we clean the scraped data and write stuff to csvs
 
 
 TODO: 
-Add criteria for incomplete 1000 + (dhist) (think that this is done)
-Add index for which number each donations is 
 Do randomized test and train data (by campaign)
 -- Write these to three csvs dhistrain, dhistest, dhistall
 
@@ -66,7 +64,7 @@ dhist$is_anonymous <- str_detect(dhist$is_anonymous, fixed('True', ignore_case=T
 dhist$verified <- str_detect(dhist$verified, fixed('True', ignore_case=TRUE))
 dhist$is_offline <- str_detect(dhist$is_offline, fixed('True', ignore_case=TRUE))
 dhist
-} #this works now with the ignore case thingcççç
+} 
 
 
 laglead <- function(fulldf){ #add the lags and leads
@@ -98,6 +96,8 @@ addgender <- function(dhist){ #add the gender based on first names by social sec
   genderdf <- distinct(genderdf) %>% select(-proportion_male, -proportion_female, -year_min, -year_max)
   finaldf <- left_join(dfull, genderdf, by = "firstname") 
   finaldf$is_female <- as.integer(str_detect(finaldf$gender, "female")) #get boolean for is female
+  m <- finaldf$is_female
+  finaldf$is_female <- coalesce(m, 0L)
   finaldf$is_anonymous <- as.integer(as.logical(finaldf$is_anonymous))
   finaldf <- finaldf %>% mutate(gender = case_when(
      is_anonymous == 1 ~ "anonymous",
@@ -109,9 +109,9 @@ leaddate <- function(dhist){
   dhist <- dhist  %>% 
     group_by(urlsolid) %>% 
     arrange(createdxts, .by_group = TRUE) %>%  #don't break original grouping
-    mutate(createdxtslead = dplyr::lead(createdxts,n = 1L))
+    mutate(createdxtslead = dplyr::lead(createdxts,n = 1L), createdxtslag = dplyr::lag(createdxts,n = 1L))
   dhist <- dhist %>% 
-    mutate(timeafter = difftime(createdxtslead, createdxts, units = "secs")) #get seconds until next donation
+    mutate(timeafter = difftime(createdxtslead, createdxts, units = "secs"), timebefore = difftime(createdxts, createdxtslag, units = "secs")) #get seconds until next donation
   dhist <- dhist %>% dplyr::filter(urlsolid != "#NAME?") #like 35 of these idk why
 }
 
@@ -160,7 +160,7 @@ sumstats <- function(f) {
   
   g <- left_join(g, dhist5s, by ="donation_id")
   
-  g <- g %>% mutate(kurtc = coalesce(kurtosis5, kurtosis10), histavgc = coalesce(mean5, mean10), skewc = coalesce(skewness5, skewness10),varc = coalesce(variance5, variance10)) %>% group_by(urlsolid)
+  g <- g %>% mutate(kurt = coalesce(kurtosis5, kurtosis10), dispavg = coalesce(mean5, mean10), skew = coalesce(skewness5, skewness10),var = coalesce(variance5, variance10)) %>% group_by(urlsolid)
   g
 }
 
@@ -181,45 +181,56 @@ maxedout <- function(dhist){#gets the number of each donor, gets camps maxed out
   TRUE ~ FALSE)) 
   dhist <- left_join(dhist, a, by = "urlsolid")
   dhist <- dhist %>% group_by(urlsolid) %>%
-    mutate(numdonor = seq_len(length.out = countd)) #add the 
+    mutate(numdonor = seq_len(length.out = countd)) 
+  dhist
+}
+
+seed <- function(dhist){
+  dhist <- dhist %>% group_by(urlsolid) %>% mutate(seedmoney= cumsum(amount) - amount)
   dhist
 }
 
 
 cleandhist <- function(dhist){
-  dhist <- prepdhist(dhist) #good
+  dhist <- prepdhist(dhist) 
   dhist <- addtimevars(dhist)
-  dhist <- leaddate(dhist) #add lead date, time after, and arrange
-  dhist <- checkdateforlags(dhist) #hella slow but good
-  dhist <- addgender(dhist) #good
-  dhist <- laglead(dhist) #good
+  dhist <- leaddate(dhist) #add lead date, timeafter, timebefore, and arrange
+  dhist <- checkdateforlags(dhist) 
+  dhist <- addgender(dhist)
+  dhist <- laglead(dhist) 
   dhist <- sumstats(dhist)
   dhist <- maxedout(dhist) 
+  dhist <- seed(dhist)
 }
 ```
 
 ```{r}
-#just as a check everything works
-a<- prepdhist(dhistall)
-b<- addtimevars(a)
-c<- leaddate(b)
-d<- checkdateforlags(c)
-e<- addgender(d)
-f <- laglead(e)
-g <- sumstats(f)
-h <- maxedout(g)
+#just run this like 15 min
+dhistall <- cleandhist(dhistall)
+
+#debugging
+a<- prepdhist(dhistall) #good
+b<- addtimevars(a) #good
+c<- leaddate(b) #good
+d<- checkdateforlags(c) #good
+e<- addgender(d) #good
+f<- laglead(e) #good
+g<- sumstats(f)#good but slow af
+h<- maxedout(g) #good
+i<- seed(h) #good
+
 
 #divy up into train and test
-m <- dhist %>% group_by(urlsolid) %>% summarise(eh = n())
-m <- dhist %>% select(-eh) %>% mutate(numcamp = seq_len(nrow(m)))
+m <- dhistall %>% group_by(urlsolid) %>% summarise(eh = n())
+m <- m %>% select(-eh) 
 set.seed(9)
 split = sample(c(TRUE, FALSE), nrow(m), replace=TRUE, prob=c(0.5, 0.5))
 m <- cbind(m, split)
-dhist <- left_join(dhist, m, by = "urlsolid")
-training = dataset[split, ]
-testing = dataset[!split, ]
+dhistall <- left_join(dhistall, m, by = "urlsolid")
 
-dhist <- left_join(dhist, m, by = "urlsolid")
+#write to csv
+write.csv(dhistall,'dhistall.csv')
+
 
 dhist <- cleandhist(dhist)
 dhisttest <- cleandhist(dhisttest)

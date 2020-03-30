@@ -23,29 +23,23 @@ library(ggpointdensity)
 ```{r}
 df <- read.csv("dhist1to4.csv")
 dhist <- tbl_df(df)
-dhist <- dhist %>% mutate(dow = weekdays(createdxts)) 
-dhist <- dhist %>% mutate(month = months(createdxts)) 
-dhist <- dhist %>% mutate(year = isoyear(createdxts)) 
-dhist <- dhist %>% mutate(hourofday = hour(createdxts))
-dhist <- dhist %>% group_by(urlsolid) %>% mutate(seedmoney= cumsum(amount) - amount)
-
 
 df2 <- read.csv("dhist5to8.csv")
 dhisttest <- tbl_df(df2)
 dhisttest <- sumstats(dhisttest)
 
-dhistall <- bind_rows(dhist,dhisttest)
+dhistall <- read.csv("dfc.csv")
 ```
 
 
 ```{r}
-
+#corresponds to table 2.1
 nrow(dhistall)
 mean(dhistall$amount)
 sum(dhistall$amount)
 median(dhistall$amount)
 
-anonhist <- dhistall %>% dplyr::filter(is_anonymous == 1)
+anonhist <- dhistall %>% dplyr::filter(gender == "anonymous")
 nrow(anonhist)
 mean(anonhist$amount)
 
@@ -57,58 +51,40 @@ femalehist <- dhistall %>% dplyr::filter(gender == "female")
 nrow(femalehist)
 mean(femalehist$amount)
 
+unknownhist <- dhistall %>% dplyr::filter(is.na(gender))
+nrow(unknownhist)
+mean(unknownhist$amount)
 
-```
+dhistsum <- dhistall %>% group_by(category) %>% group_by(gender, add = TRUE) %>% summarize(total = n(), meand = mean(amount)) %>% arrange(desc(total), .by_group = TRUE)
+dhistsum
 
-```{r}
-count <- dhist %>% dplyr::filter(amount > 500)
-nrow(count)/ nrow(dhist)
-dhist <- dhist %>% dplyr::mutate(amountcensored = case_when(
-     amount > 500 ~ 500,
-    TRUE ~ amount))
-max(dhist$amount)
-max(dhistcensor$amount)
+ggplot(dhistall, aes(x = category, y = amount, color = gender)) + geom_boxplot() + ylim(0,150)  + theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
 
 
-
 ```{r}
-campatt1 <- na.omit(campatt1) %>% mutate(endprog = (amtraised/goalamt)*100)
-```
-
-```{r}
-ggplot(campatt1, aes(x = endprog)) + geom_histogram(aes(y=..density..), colour="black", fill="white") +
+#this is figure 2.4 
+dfc %>% dplyr::filter(terminated != TRUE) %>% distinct(urlsolid, .keep_all = TRUE) %>% mutate(progress = progress *100) %>%
+ggplot( aes(x = progress)) + geom_histogram(aes(y=..density..), colour="black", fill="white") +
  geom_density(alpha=.2, fill="#FF6666") + xlim(0,150) 
+ggsave("pdffund.png", width = 7, height = 4, units = "in")
 ```
 
+
+
 ```{r}
+#this is figure 2.3
 ggplot(dhistall, aes(x = amount)) + geom_histogram(binwidth = 5, color="steelblue", fill="white", position = "identity") + xlim(0,120) 
-ggsave("amtdist.png")
-```
-
-```{r}
-ggplot(dhist, aes(x = amount)) + geom_histogram(binwidth = 5, color="steelblue", fill="white") + xlim(0,120) + ggtitle("Distribution of Amounts Donated")
-ggsave("amtdist.png")
-```
-
-
-
-```{r}
-ggplot(dhistall, aes(x = amount, fill = as.factor(gender), color = as.factor(gender)))  +
-  geom_histogram(binwidth = 5, alpha=0.5, position="dodge") + xlim(0,120) 
+ggsave("amtdist.png", width = 7, height = 4, units = "in")
 ```
 
 
 ```{r}
-ggplot(dhist, aes(x = as.factor(is_anonymous), y = amount, color = as.factor(is_anonymous)))  +
-  geom_boxplot() + ylim(0,150)
-```
-
-```{r}
-dhist$month <- fct_relevel(dhist$month, levels = c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"))
+#this is figure 2.5
+dhistall$month <- fct_relevel(dhistall$month, levels = c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"))
                            
-ggplot(dhist, aes(x = month, y = amount))  +
+ggplot(dhistall, aes(x = month, y = amount))  +
   geom_boxplot() + ylim(0,150)
 
 ggsave("monthdonations.png", width = 7, height = 4, units = "in")
@@ -116,27 +92,14 @@ ggsave("monthdonations.png", width = 7, height = 4, units = "in")
 
 
 ```{r}
-ggplot(dhist, aes(x = dow, y = amount))  +
+ggplot(dhistall, aes(x = dow, y = amount))  +
   geom_boxplot() + ylim(0,150)
 ```
 
-```{r}
-ggplot(dhist, aes(x = hourofday, y = amount)) + 
-  geom_point(alpha = 0.005, position = "jitter") + 
-  geom_density_2d() + 
-  ylim(0,250)
-```
 
 ```{r}
-ggplot(dhist, aes(x = hourofday, y = amount)) +
-  geom_pointdensity(position = "jitter") +
-  scale_color_viridis_c() + 
-  ylim(0,250)
-```
-
-
-```{r}
-ggplot(dhist, aes(x = hourofday, y = amount)) +
+#this is figure 2.6
+ggplot(dhistall, aes(x = hourofday, y = amount)) +
   geom_pointdensity() +
   scale_color_viridis_c() + 
   ylim(0,250)

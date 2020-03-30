@@ -252,6 +252,9 @@ write.csv(g,'dhist1to4.csv')
 #str_pad = pad with additional characters 
 #str_detect = detects a pattern, returns TRUE/FALSE 
 #str_replace = find and replace a pattern 
+
+#if just says goal in goalamt means that there were no donations to that campaign
+#if just says raised in goalamt means that the campaign was terminated (can no longer see goal)
 ```
 
 ```{r}
@@ -259,34 +262,39 @@ getdigits <- function(string){
   list(regmatches(string,gregexpr("[[:digit:]]+\\.*[[:digit:]]*",string)))
 }
 cleanattributes <- function(dfatt){ 
-  dfatt <- dfatt[ , -1]
+  dfatt <- dfatt %>% select(-X, -description1, -description2, -description3) %>% rename(urlsolid = urlname) %>% rename(nonprofit = nonprofit.)
+  dfatt$notnone <- str_detect(dfatt$goalamt, fixed("raised"))
+  dfatt$terminated <- str_detect(dfatt$terminated, "donations")
+  
   dfatt$goalamt <- gsub("'raised of", "", dfatt$goalamt,
      ignore.case = FALSE)
   dfatt$goalamt <- gsub("goal'", "", dfatt$goalamt,
      ignore.case = FALSE)
   dfatt$goalamt<- gsub("[[:punct:]]", "", dfatt$goalamt,  #can also use str_replace if ya want
      ignore.case = FALSE)
-  dfatt$amtraised<- gsub("[[:punct:]]", "", dfatt$amtraised,   ee5
+  dfatt$amtraised<- gsub("[[:punct:]]", "", dfatt$amtraised,
      ignore.case = FALSE)
   dfatt$goalamt <- as.integer(dfatt$goalamt)
   dfatt$amtraised <- as.integer(dfatt$amtraised)
-  dfatt$terminatedbool <- str_detect(dfatt$terminated, "donations") #double check this line
-  dfatt$nonprofit <- str_detect(dfatt$nonprofit., "Registered")
-  dfatt<- dfatt%>% mutate(progress = amtraised/goalamt) %>% rename(urlsolid = urlname)
+  dfatt <- dfatt %>% mutate(progress = case_when(terminated == TRUE ~ 0, notnone == FALSE ~ 0, TRUE ~ amtraised/goalamt))
+  #filter out terminated if looking at goal cause you cant tell
+  dfatt$nonprofit <- str_detect(dfatt$nonprofit, "Registered")
+  dfatt
 }
 ```
 
 ```{r}
-campatt <- cleanattributes(campatt)
-campatt<- campatt[!duplicated(campatt$urlsolid), ]
-nrow(campatt)
+
+campattall <- cleanattributes(campattall)
+campattall<- campattall[!duplicated(campattall$urlsolid), ]
+nrow(campattall)
 ```
 
 #Merge important parts of dhist and campatt
 
 ```{r}
-dfc <- left_join(dhist, campatt, by = "urlsolid") 
-dfc <- dfc %>% select( -description1, -description2, -description3, -nonprofit.)
+dfc <- left_join(dhistall, campattall, by = "urlsolid") 
+nrow(dfc)
 ```
 
 

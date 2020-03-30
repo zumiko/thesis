@@ -9,8 +9,16 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
+Here's where we clean the scraped data and write stuff to csvs
+
+
 TODO: 
-Add criteria for incomplete 1000 + (dhist)
+Add criteria for incomplete 1000 + (dhist) (think that this is done)
+Add index for which number each donations is 
+Do randomized test and train data (by campaign)
+-- Write these to three csvs dhistrain, dhistest, dhistall
+
 
 PROBLEMS: 
 add no donations col (campatt)
@@ -104,14 +112,14 @@ leaddate <- function(dhist){
     mutate(createdxtslead = dplyr::lead(createdxts,n = 1L))
   dhist <- dhist %>% 
     mutate(timeafter = difftime(createdxtslead, createdxts, units = "secs")) #get seconds until next donation
-  dhist <- dhist %>% dplyr::filter(urlsolid != "#NAME?") #like 35 of these
+  dhist <- dhist %>% dplyr::filter(urlsolid != "#NAME?") #like 35 of these idk why
 }
 
 fixdate <- function(date){ 
   z <- as.POSIXct(date, usetz = TRUE, format="%Y-%m-%dT%H:%M:%OS")  #look at ?strptime for documentation %Y-%m-%dT%H:%M:%S
 z}
 
-checkdateforlags <- function(dhist){  #nice this works
+checkdateforlags <- function(dhist){  #partition data according to number of lags
   dhist <- dhist %>%
   mutate(lagtype = case_when(
     createdxts <  ymd_hms("2019-06-01 01:00:00") & createdxts > ymd_hms("2016-06-01 01:00:00")  ~ "unknown",
@@ -121,62 +129,97 @@ checkdateforlags <- function(dhist){  #nice this works
 }
 
 sumstats <- function(f) {
-dhist10s <- f %>% dplyr::filter(lagtype == "ten" | lagtype == "unknown") %>% ungroup(urlsolid) %>% select(donation_id, lag1,lag2,lag3,lag4,lag5, lag6, lag7, lag8, lag9, lag10)
-
-variance10 <- apply(dhist10s[, 2:11], 1, var)
-skew10 <- apply(dhist10s[, 2:11], 1, skewness) #then just mutate that column otherwise 
-kurtosis10 <- apply(dhist10s[, 2:11], 1, kurtosis)
-mean10 <- apply(dhist10s[, 2:11], 1, mean)
-
-dhist10s$kurtosis10 <- kurtosis10
-dhist10s$variance10 <- variance10
-dhist10s$skewness10 <- skew10
-dhist10s$mean10 <- mean10
-
-dhist10s <- dhist10s %>% select(donation_id,kurtosis10, variance10, skewness10, mean10)
-g <- left_join(f, dhist10s, by ="donation_id")
-
-dhist5s <- f %>% dplyr::filter(lagtype == "five") %>%  ungroup(urlsolid)  %>% select(donation_id, lag1,lag2,lag3,lag4,lag5)
-
-variance5 <- apply(dhist5s[,2:6], 1, var)
-skew5 <- apply(dhist5s[,2:6], 1, skewness) 
-kurtosis5 <- apply(dhist5s[,2:6], 1, kurtosis)
-mean5 <- apply(dhist5s[,2:6], 1, mean)
-
-dhist5s$kurtosis5 <- kurtosis5
-dhist5s$variance5 <- variance5
-dhist5s$skewness5 <- skew5
-dhist5s$mean5 <- mean5
-
-dhist5s <- dhist5s %>% select(donation_id,kurtosis5, variance5, skewness5, mean5)
-
-g <- left_join(g, dhist5s, by ="donation_id")
-
-g <- g %>% mutate(kurtc = coalesce(kurtosis5, kurtosis10), histavgc = coalesce(mean5, mean10), skewc = coalesce(skewness5, skewness10),varc = coalesce(variance5, variance10)) %>% group_by(urlsolid)
-g
+  dhist10s <- f %>% dplyr::filter(lagtype == "ten" | lagtype == "unknown") %>% ungroup(urlsolid) %>% select(donation_id, lag1,lag2,lag3,lag4,lag5, lag6, lag7, lag8, lag9, lag10)
+  
+  variance10 <- apply(dhist10s[, 2:11], 1, var)
+  skew10 <- apply(dhist10s[, 2:11], 1, skewness) #then just mutate that column otherwise 
+  kurtosis10 <- apply(dhist10s[, 2:11], 1, kurtosis)
+  mean10 <- apply(dhist10s[, 2:11], 1, mean)
+  
+  dhist10s$kurtosis10 <- kurtosis10
+  dhist10s$variance10 <- variance10
+  dhist10s$skewness10 <- skew10
+  dhist10s$mean10 <- mean10
+  
+  dhist10s <- dhist10s %>% select(donation_id,kurtosis10, variance10, skewness10, mean10)
+  g <- left_join(f, dhist10s, by ="donation_id")
+  
+  dhist5s <- f %>% dplyr::filter(lagtype == "five") %>%  ungroup(urlsolid)  %>% select(donation_id, lag1,lag2,lag3,lag4,lag5)
+  
+  variance5 <- apply(dhist5s[,2:6], 1, var)
+  skew5 <- apply(dhist5s[,2:6], 1, skewness) 
+  kurtosis5 <- apply(dhist5s[,2:6], 1, kurtosis)
+  mean5 <- apply(dhist5s[,2:6], 1, mean)
+  
+  dhist5s$kurtosis5 <- kurtosis5
+  dhist5s$variance5 <- variance5
+  dhist5s$skewness5 <- skew5
+  dhist5s$mean5 <- mean5
+  
+  dhist5s <- dhist5s %>% select(donation_id,kurtosis5, variance5, skewness5, mean5)
+  
+  g <- left_join(g, dhist5s, by ="donation_id")
+  
+  g <- g %>% mutate(kurtc = coalesce(kurtosis5, kurtosis10), histavgc = coalesce(mean5, mean10), skewc = coalesce(skewness5, skewness10),varc = coalesce(variance5, variance10)) %>% group_by(urlsolid)
+  g
 }
 
-cleandhist <- function(dhist){
-  dhist <- prepdhist(dhist) #good
+addtimevars <- function(dhist){
   dhist <- dhist %>% mutate(createdxts = fixdate(created_at)) #get to right datetime format
   dhist <- dhist %>% mutate(dow = weekdays(createdxts)) #add day of week
   dhist <- dhist %>% mutate(month = months(createdxts)) #good
+  dhist <- dhist %>% mutate(year = isoyear(createdxts)) 
+  dhist <- dhist %>% mutate(hourofday = hour(createdxts))
+}
+
+maxedout <- function(dhist){#gets the number of each donor, gets camps maxed out
+  a <- dhist %>% 
+    group_by(urlsolid) %>% 
+    summarize(countd = n()) %>% 
+    mutate(maxedout = case_when(
+  countd == 1000 ~ TRUE,
+  TRUE ~ FALSE)) 
+  dhist <- left_join(dhist, a, by = "urlsolid")
+  dhist <- dhist %>% group_by(urlsolid) %>%
+    mutate(numdonor = seq_len(length.out = countd)) #add the 
+  dhist
+}
+
+
+cleandhist <- function(dhist){
+  dhist <- prepdhist(dhist) #good
+  dhist <- addtimevars(dhist)
   dhist <- leaddate(dhist) #add lead date, time after, and arrange
   dhist <- checkdateforlags(dhist) #hella slow but good
   dhist <- addgender(dhist) #good
   dhist <- laglead(dhist) #good
   dhist <- sumstats(dhist)
+  dhist <- maxedout(dhist) 
 }
 ```
 
 ```{r}
-a<- prepdhist(dhist)
-b<- a %>% mutate(createdxts = fixdate(created_at))
+#just as a check everything works
+a<- prepdhist(dhistall)
+b<- addtimevars(a)
 c<- leaddate(b)
 d<- checkdateforlags(c)
 e<- addgender(d)
 f <- laglead(e)
 g <- sumstats(f)
+h <- maxedout(g)
+
+#divy up into train and test
+m <- dhist %>% group_by(urlsolid) %>% summarise(eh = n())
+m <- dhist %>% select(-eh) %>% mutate(numcamp = seq_len(nrow(m)))
+set.seed(9)
+split = sample(c(TRUE, FALSE), nrow(m), replace=TRUE, prob=c(0.5, 0.5))
+m <- cbind(m, split)
+dhist <- left_join(dhist, m, by = "urlsolid")
+training = dataset[split, ]
+testing = dataset[!split, ]
+
+dhist <- left_join(dhist, m, by = "urlsolid")
 
 dhist <- cleandhist(dhist)
 dhisttest <- cleandhist(dhisttest)
@@ -212,7 +255,7 @@ cleanattributes <- function(dfatt){
      ignore.case = FALSE)
   dfatt$goalamt<- gsub("[[:punct:]]", "", dfatt$goalamt,  #can also use str_replace if ya want
      ignore.case = FALSE)
-  dfatt$amtraised<- gsub("[[:punct:]]", "", dfatt$amtraised,
+  dfatt$amtraised<- gsub("[[:punct:]]", "", dfatt$amtraised,   ee5
      ignore.case = FALSE)
   dfatt$goalamt <- as.integer(dfatt$goalamt)
   dfatt$amtraised <- as.integer(dfatt$amtraised)

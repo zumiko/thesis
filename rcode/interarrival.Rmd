@@ -1,0 +1,55 @@
+---
+title: "interarrival"
+author: "Claire Jellison"
+date: "4/8/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(dplyr)
+library(tidyverse)
+library(fabricatr)
+```
+
+
+Okay, first to find the average arrival time for each campaign
+
+```{r}
+# looking at campaigns with more than 100 donors
+dhistinter <- dhistall %>% 
+  dplyr::filter(countd >= 100) %>%
+  group_by(urlsolid) %>% 
+  summarize(lambda = mean(timebefore, na.rm = TRUE)) %>%
+  arrange(lambda)
+
+dhistinter2 <- dhistall %>% 
+  dplyr::filter(countd >= 100) %>%
+  dplyr::filter(!is.na(timebefore)) %>%
+  group_by(urlsolid) %>% 
+  mutate(quartile = split_quantile(timebefore, type = 4))
+
+```
+
+
+
+```{r}
+q1 <- dhistinter2 %>% dplyr::filter(quartile == "1")
+meanq1 <- lm(amount ~ histavg*lagtype, data = q1)
+q2 <- dhistinter2 %>% dplyr::filter(quartile == "2")
+meanq2 <- lm(amount ~ histavg*lagtype, data = q2)
+q3 <- dhistinter2 %>% dplyr::filter(quartile == "3")
+meanq3 <- lm(amount ~ histavg*lagtype, data = q3)
+q4 <- dhistinter2 %>% dplyr::filter(quartile == "4")
+meanq4 <- lm(amount ~ histavg*lagtype, data = q4)
+
+summary(meanq1)
+summary(meanq2)
+summary(meanq3)
+summary(meanq4)
+```
+

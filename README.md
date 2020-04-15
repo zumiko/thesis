@@ -14,6 +14,6 @@ This repo is for my undergrad thesis on peer effects with online crowdfunding.
 ### scraper
 * prelimscrapezipw = input zipcodes to get campaigns with those codes
 * timescrapew = gets time history for given campaigns
-* complete = combining the two
+* completemergefixed = combining the two
 
 walking on a tightrope to the sun

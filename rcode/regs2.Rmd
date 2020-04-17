@@ -1,0 +1,209 @@
+---
+title: "regs"
+author: "Claire Jellison"
+date: "12/26/2019"
+output: pdf_document
+---
+
+```{r}
+library(texreg)
+library(dplyr)
+```
+
+```{r}
+dhistall <- dhistall %>% dplyr::filter(lagtype != "unknown")
+dhist5 <- dhistall %>% dplyr::filter(lagtype == "five")
+dhist10 <- dhistall %>% dplyr::filter(lagtype == "ten")
+```
+
+
+#https://drsimonj.svbtle.com/visualising-residuals for looking at residuals
+```{r}
+#this is table 3.1
+meanlm <- lm(amount ~ histavg*lagtype, data = dhistall)
+meanlm2 <- lm(amount ~ histavg*lagtype + is_anonymous*histavg, data = dhistall)
+meanlm3 <- lm(amount ~ histavg*lagtype + is_female*histavg , data = dhistall)
+meanlm4 <- lm(amount ~ histavg*lagtype + nonprofit*histavg , data = dhistall)
+texreg(list(meanlm, meanlm2, meanlm3, meanlm4))
+
+#this is table 3.2 
+meanlm5 <- lm(amount ~ histavg , data = dhist5)
+meanlm10 <- lm(amount ~ histavg, data = dhist10)
+texreg(list(meanlm5, meanlm10))
+
+#this is appendix A2
+meanlmadd <- lm(amount ~ histavg*lagtype + dow + month + hourofday +  year + is_female*histavg, data = dhistall)
+summary(meanlmadd)
+texreg(meanlmadd)
+
+#this is appendix A1
+seedlm1 <- lm(amount ~ histavg*lagtype + I(scale(progress)), data = dhistall)
+seedlm2 <- lm(amount ~ histavg*lagtype + I(scale(seedmoney)), data = dhistall)
+summary(seedlm1)  
+summary(seedlm2)
+texreg(list(seedlm1, seedlm2))
+
+
+plot(meanlm1ln)   
+plot(meanlm)  
+```
+
+```{r}
+#timeafter
+timeafter<- lm(timeafter ~ histavg , data = dhistall)
+timeafter2<- lm(amount ~ timebefore*histavg , data = dhistall)
+summary(timeafter)
+summary(timeafter2)
+```
+
+
+```{r}
+categorylm <- lm(amount ~ histavg*lagtype + category*histavg, data = dhistall)
+texreg(categorylm)
+```
+
+
+```{r}
+#anon reg
+anonlm <- glm(is_anonymous ~ anonprop, data = dhist, family = "binomial")
+summary(anonlm)
+texreg(anonlm)
+```
+
+
+now for some size based models 
+
+```{r}
+minlm <- lm(amount ~ d1, data = dhist5size)
+summary(minlm)
+d2lm <- lm(amount ~ d2, data = dhist5size)
+summary(d2lm)
+medianlm <- lm(amount ~ d3, data = dhist5size)
+summary(medianlm)
+d4lm <- lm(amount ~ d4, data = dhist5size)
+summary(d4lm)
+maxlm <- lm(amount ~ d5, data = dhist5size)
+summary(maxlm)
+histavglm <- lm(amount ~ I((d1 +d2 + d3 + d4 + d5)/5), data = dhist5size)
+summary(histavglm)
+alllm <- lm(amount ~ d1 + d2 + d3 + d4 + d5, data = dhist5size)
+summary(alllm)
+texreg(list(alllm, minlm, medianlm, maxlm))
+plot(distlm)
+summary(allinterlm)
+texreg(distlm)
+
+increaseinpred <- c(1.31093, 0.86477, 0.20340, 0.06263, 0.01331)
+d <- c(1, 2, 3, 4, 5)
+r <- as.data.frame(cbind(d, increaseinpred))
+ggplot(r, aes(x = d, y = increaseinpred)) + geom_bar(color="steelblue", fill="white", stat = "identity") 
+```
+
+```{r}
+min10lm <- lm(amount ~ d1, data = dhist10size)
+summary(min10lm)
+median10lm <- lm(amount ~ I((d5 + d6)/2), data = dhist10size)
+summary(median10lm)
+max10lm <- lm(amount ~ d5, data = dhist10size)
+summary(max10lm)
+all10lm <- lm(amount ~ d1 + d2 + d3 + d4 + d5 + d6 + d7 + d8 + d9 + d10, data = dhist10size)
+summary(all10lm)
+```
+Cross sectional regression 
+
+```{r}
+cross1 <- dhistall %>% dplyr::filter(numdonor == 2)
+cross1lm <- lm(amount ~ lag1, data = cross1)
+cross2 <- dhistall %>% dplyr:: filter(numdonor == 3) %>% mutate(hisavg = I((lag1 + lag2)/2))
+cross2lm <- lm(amount ~ hisavg, data = cross2)
+summary(cross2lm)
+```
+
+
+```{r}
+skewvar <- lm(amount ~ histavg + skewc + varc + kurtc +  d1, data = dhist10size)
+skewvar2 <- lm(amount ~ d1*skewc*varc*histavg, data = dhist10size)
+summary(skewvar2)
+texreg(skewvar)
+
+```
+
+Okay now for fixed effects manually 
+
+```{r}
+library(lfe)
+```
+
+This is fixed effects 
+```{r}
+#this is table 3.5 
+fehistavg <- felm(amount ~ histavg  | urlsolid, data = dhist5,
+  contrasts = c('urlsolid', 'createdxts'))
+
+fehistavg2 <- felm(amount ~ histavg*is_female | urlsolid, data = dhist5,
+  contrasts = c('urlsolid', 'createdxts'))
+
+fehistavg3 <- felm(amount ~ histavg*is_anonymous | urlsolid, data = dhist5,
+  contrasts = c('urlsolid', 'createdxts'))
+
+fehistavg4 <- felm(amount ~ histavg*gender | urlsolid, data = dhist5,
+  contrasts = c('urlsolid', 'createdxts'))
+
+fehistavg5 <- felm(amount ~ histavg*nonprofit | urlsolid, data = dhist5,
+  contrasts = c('urlsolid', 'createdxts'))
+
+
+texreg(list(fehistavg, fehistavg2, fehistavg3))
+```
+
+
+```{r}
+#this is table 3.6
+ffehistavg <- felm(amount ~ histavg  | urlsolid, data = dhist10,
+  contrasts = c('urlsolid', 'createdxts'))
+
+ffehistavg2 <- felm(amount ~ histavg*is_female | urlsolid, data = dhist10,
+  contrasts = c('urlsolid', 'createdxts'))
+
+ffehistavg3 <- felm(amount ~ histavg*is_anonymous | urlsolid, data = dhist10,
+  contrasts = c('urlsolid', 'createdxts'))
+
+
+summary(ffehistavg3)
+summary(ffehistavg4)
+texreg(list(ffehistavg, ffehistavg2, ffehistavg3))
+```
+
+Looking at interarrival times 
+
+```{r}
+dhistinter <- dhistall %>% 
+  dplyr::filter(countd >= 100) %>%
+  dplyr::filter(!is.na(timebefore)) %>%
+  group_by(urlsolid) %>% 
+  mutate(quartile = ntile(timebefore, 4), 
+         decile = ntile(timebefore, 10))
+```
+
+
+```{r}
+#this is table 3.7
+feinter  <- felm(amount ~ histavg*as.factor(quartile)  | urlsolid, data = dhistinter,
+  contrasts = c('urlsolid', 'createdxts'))
+
+dhistinter2 <- dhistinter %>% dplyr::filter(numdonor > 10)
+
+feinter2  <- felm(amount ~ histavg*as.factor(quartile)  | urlsolid, data = dhistinter2,
+  contrasts = c('urlsolid', 'createdxts'))
+
+summary(feinter2)
+texreg(feinter2)
+```
+
+```{r}
+firstmorn <- dhistall %>% 
+  mutate(fistinmorn = case_when(
+    createdxts < 
+  ))
+```
+

@@ -17,6 +17,7 @@ library(tidyverse)
 library(lubridate)
 library(quantmod)
 library(ggpointdensity)
+library(stringr)
 ```
 
 
@@ -29,6 +30,7 @@ dhisttest <- tbl_df(df2)
 dhisttest <- sumstats(dhisttest)
 
 dhistall <- read.csv("dfc.csv")
+dfc <- read.csv("dfc.csv")
 ```
 
 
@@ -38,6 +40,7 @@ nrow(dhistall)
 mean(dhistall$amount)
 sum(dhistall$amount)
 median(dhistall$amount)
+
 
 anonhist <- dhistall %>% dplyr::filter(gender == "anonymous")
 nrow(anonhist)
@@ -105,4 +108,53 @@ ggplot(dhistall, aes(x = hourofday, y = amount)) +
   ylim(0,250)
 ggsave("timeofdaydonations.png", width = 7, height = 4, units = "in")
 ```
+
+
+```{r}
+dhistall$category<- gsub("[^A-Za-z0-9 ]","",dhistall$category)
+dhistall$category<- str_replace(dhistall$category,"fundraiser","")
+
+dhistall %>%   
+  group_by(category) %>% 
+  summarize(meanamount = mean(amount)) %>% 
+  arrange(meanamount) %>% 
+  dplyr::filter(category != "NA") %>% 
+  ggplot(aes(x = reorder(category, -meanamount), y = meanamount)) + 
+  geom_bar(stat = "identity", color="steelblue", fill="white") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+  ylab("mean donation") 
+
+ggsave("meanbycate.png", width = 7, height = 4, units = "in")
+
+
+dhistall %>%   
+  group_by(category) %>% 
+  summarize(countamount = n()) %>% 
+  dplyr::filter(category != "NA") %>% 
+  ggplot(aes(x = category, y = countamount)) + 
+  geom_bar(stat = "identity", color="steelblue", fill="white") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+  ylab("total donations") 
+
+  
+```
+
+
+```{r}
+lambda <- nrow(dhistall$timeafter)/sum(dhistall$timeafter)
+eq = function(x){lambda * exp(-lambda*x)}
+
+ggplot(dhistall, aes(x = timeafter))  +
+  geom_histogram(bins = 30) + xlim(0, 50000) + 
+  stat_function(fun=eq)
+
+x <- seq(0, 1000, length.out=1000)
+dat <- data.frame(x=x, px=dexp(x, rate=lambda))
+ggplot(dat, aes(x=x, y=px)) + geom_line()
+
+ggplot(data.frame(x=c(1, 50000)), aes(x=x)) + 
+  stat_function(fun=eq)
+
+```
+
 

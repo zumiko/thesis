@@ -59,9 +59,7 @@ nrow(unknownhist)
 mean(unknownhist$amount)
 
 dhistsum <- dhistall %>% group_by(category) %>% group_by(gender, add = TRUE) %>% summarize(total = n(), meand = mean(amount)) %>% arrange(desc(total), .by_group = TRUE)
-dhistsum
 
-ggplot(dhistall, aes(x = category, y = amount, color = gender)) + geom_boxplot() + ylim(0,150)  + theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
 
@@ -78,7 +76,10 @@ ggsave("pdffund.png", width = 7, height = 4, units = "in")
 
 ```{r}
 #this is figure 2.3
-ggplot(dhistall, aes(x = amount)) + geom_histogram(binwidth = 5, color="steelblue", fill="white", position = "identity") + xlim(0,120) 
+dhistall %>% 
+  ggplot(aes(x = amount)) + 
+  geom_histogram(binwidth = 5, fill = "white", color="steelblue", position = "identity") +
+  xlim(0,120)
 ggsave("amtdist.png", width = 7, height = 4, units = "in")
 ```
 
@@ -90,13 +91,17 @@ dhistall$month <- fct_relevel(dhistall$month, levels = c("January", "February", 
 ggplot(dhistall, aes(x = month, y = amount))  +
   geom_boxplot() + ylim(0,150)
 
+
 ggsave("monthdonations.png", width = 7, height = 4, units = "in")
 ```
 
 
 ```{r}
-ggplot(dhistall, aes(x = dow, y = amount))  +
-  geom_boxplot() + ylim(0,150)
+dhistall %>% 
+  group_by(dow) %>% 
+  summarise(meand = mean(amount)) %>% 
+  ggplot(aes(x = dow, y = meand))  +
+  geom_point() + ylim(0,150)
 ```
 
 
@@ -124,19 +129,10 @@ dhistall %>%
   ggplot(aes(x = reorder(category, -meanamount), y = meanamount)) + 
   geom_bar(stat = "identity", color="steelblue", fill="white") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
-  ylab("mean donation") 
+  ylab("mean donation") +
+  xlab("category")
 
-ggsave("meanbycate.png", width = 7, height = 4, units = "in")
-
-
-dhistall %>%   
-  group_by(category) %>% 
-  summarize(countamount = n()) %>% 
-  dplyr::filter(category != "NA") %>% 
-  ggplot(aes(x = reorder(category, -countamount), y = countamount)) + 
-  geom_bar(stat = "identity", color="steelblue", fill="white") +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
-  ylab("total donations") 
+ggsave("mmeanbycate.png", width = 7, height = 4, units = "in")
 
 dhistall %>%   
   mutate(gender = replace_na(gender, "unknown")) %>%
@@ -147,7 +143,8 @@ dhistall %>%
   geom_bar(stat = "identity") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
   scale_fill_brewer(palette="Dark2") + 
-  ylab("total donations") 
+  ylab("total donations") +
+  xlab("category")
 
 ggsave("totbycate.png", width = 7, height = 4, units = "in")
 

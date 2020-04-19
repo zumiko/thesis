@@ -36,14 +36,20 @@ meanlmadd <- lm(amount ~ histavg*lagtype + dow + month + hourofday +  year + is_
 summary(meanlmadd)
 texreg(meanlmadd)
 
-#this is appendix A1
-seedlm1 <- lm(amount ~ histavg*lagtype + I(scale(progress)), data = dhistall)
-seedlm2 <- lm(amount ~ histavg*lagtype + I(scale(seedmoney)), data = dhistall)
+#this is table 3.2 
+#first make indicator to see if has reached goal amount for progress
+dhistallp <- dhistall %>% 
+  mutate(comp = case_when(
+    progress >= 1 ~ TRUE, 
+    TRUE ~ FALSE
+))
+seedlm1 <- lm(amount ~ histavg*lagtype + progress*comp + progress*histavg, data = dhistallp)
+seedlm2 <- lm(amount ~ histavg*lagtype + seedmoney*comp + seedmoney*histavg, data = dhistallp)
 summary(seedlm1)  
 summary(seedlm2)
 texreg(list(seedlm1, seedlm2))
 
-
+summary(seedlm2)
 plot(meanlm1ln)   
 plot(meanlm)  
 ```
@@ -119,22 +125,35 @@ cross2lm <- lm(amount ~ hisavg, data = cross2)
 summary(cross2lm)
 ```
 
+Seed money stuff 
 
 ```{r}
-skewvar <- lm(amount ~ histavg + skewc + varc + kurtc +  d1, data = dhist10size)
-skewvar2 <- lm(amount ~ d1*skewc*varc*histavg, data = dhist10size)
-summary(skewvar2)
-texreg(skewvar)
-
+#this is table 3.2
+dhistallp <- dhistall %>% #make indicator for reaching goal amount
+  mutate(comp = case_when(
+    progress >= 1 ~ TRUE, 
+    TRUE ~ FALSE))
+  
+seedlm1 <- lm(amount ~ histavg + progress*histavg + progress*comp, data = dhistallp)
+feseedlm2 <- lm(amount ~ histavg + seedmoney*comp + seedmoney*histavg, data = dhistallp)
+summary(seedlm1)  
+summary(feseedlm2)
+texreg(seedlm1)
 ```
 
-Okay now for fixed effects manually 
+
+
+
+
+
+Now begins fixed effects 
 
 ```{r}
 library(lfe)
 ```
 
-This is fixed effects 
+
+
 ```{r}
 #this is table 3.5 
 fehistavg <- felm(amount ~ histavg  | urlsolid, data = dhist5,
@@ -151,7 +170,6 @@ fehistavg4 <- felm(amount ~ histavg*gender | urlsolid, data = dhist5,
 
 fehistavg5 <- felm(amount ~ histavg*nonprofit | urlsolid, data = dhist5,
   contrasts = c('urlsolid', 'createdxts'))
-
 
 texreg(list(fehistavg, fehistavg2, fehistavg3))
 ```
@@ -173,6 +191,20 @@ summary(ffehistavg3)
 summary(ffehistavg4)
 texreg(list(ffehistavg, ffehistavg2, ffehistavg3))
 ```
+
+```{r}
+sizebased <- felm(amount ~ d1 + d2 + d3 + d4 + d5  | urlsolid, data = dhist5size,
+  contrasts = c('urlsolid', 'createdxts'))
+fed1 <- felm(amount ~ d1 | urlsolid, data = dhist5size,
+  contrasts = c('urlsolid', 'createdxts'))
+fed3 <- felm(amount ~ d3 | urlsolid, data = dhist5size,
+  contrasts = c('urlsolid', 'createdxts'))
+fed5 <- felm(amount ~ d5 | urlsolid, data = dhist5size,
+  contrasts = c('urlsolid', 'createdxts'))
+summary(fed5)
+texreg(list(sizebased, fed1, fed3, fed5))
+```
+
 
 Looking at interarrival times 
 
@@ -201,9 +233,23 @@ texreg(feinter2)
 ```
 
 ```{r}
+#occurs between 6 and 11 in the morning and more 7than hrs previous to it 
 firstmorn <- dhistall %>% 
-  mutate(fistinmorn = case_when(
-    createdxts < 
+  mutate(firstinmorn = case_when(
+    hourofday > 6 & hourofday < 11 & timebefore > 25200 ~ TRUE,  
+    TRUE ~ FALSE
+  ), 
+  hrscat = case_when(
+    timebefore < 18000 ~ "lessthan5",
+    timebefore >= 18000 & timebefore < 36000 ~ "fivetoten",  
+    timebefore >= 36000  & timebefore >= 54000 ~ "fivetofifteen",  
+    TRUE ~ "greaterthan15"
   ))
+
+feinter3  <- felm(amount ~ histavg*firstinmorn | urlsolid, data = firstmorn,
+  contrasts = c('urlsolid', 'createdxts'))
+feinter3  <- felm(amount ~ histavg*hrscat | urlsolid, data = firstmorn,
+  contrasts = c('urlsolid', 'createdxts'))
+summary(feinter3)
 ```
 

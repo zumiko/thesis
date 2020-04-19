@@ -113,6 +113,8 @@ ggsave("timeofdaydonations.png", width = 7, height = 4, units = "in")
 ```{r}
 dhistall$category<- gsub("[^A-Za-z0-9 ]","",dhistall$category)
 dhistall$category<- str_replace(dhistall$category,"fundraiser","")
+dhistall$gender <- as.character(dhistall$gender)
+dhistall$nbrSims[is.na(dhistall$gender)] <- "unknown"
 
 dhistall %>%   
   group_by(category) %>% 
@@ -131,12 +133,24 @@ dhistall %>%
   group_by(category) %>% 
   summarize(countamount = n()) %>% 
   dplyr::filter(category != "NA") %>% 
-  ggplot(aes(x = category, y = countamount)) + 
+  ggplot(aes(x = reorder(category, -countamount), y = countamount)) + 
   geom_bar(stat = "identity", color="steelblue", fill="white") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
   ylab("total donations") 
 
-  
+dhistall %>%   
+  mutate(gender = replace_na(gender, "unknown")) %>%
+  group_by(category, gender) %>% 
+  summarize(countamount = n()) %>% 
+  dplyr::filter(category != "NA") %>% 
+  ggplot(aes(fill = gender, x = reorder(category, -countamount), y = countamount)) + 
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+  scale_fill_brewer(palette="Dark2") + 
+  ylab("total donations") 
+
+ggsave("totbycate.png", width = 7, height = 4, units = "in")
+
 ```
 
 

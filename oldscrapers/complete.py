@@ -64,6 +64,7 @@ class gfm_Spider(scrapy.Spider):
 
     donorsamt = response.xpath('//span[contains(@class, "text-stat-value") and contains(@class, "text-underline") and contains(@class, "u-pointer")]/text()')   #//div[contains(@class, 'class1') and contains(@class, 'class2')]
     donorsamt_ext = [t.strip() for t in donorsamt.extract()]
+    print(donorsamt_ext)
 
     sharesamt = donorsamt.xpath('//span[contains(@class, "text-stat-value")]/span/text()')
     sharesamt_ext = [t.strip() for t in sharesamt.extract()]

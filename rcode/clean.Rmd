@@ -10,8 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-Here's where we clean the scraped data and write stuff to csvs
-
+Clean the scraped data and write stuff to csvs
 
 TODO: 
 
@@ -293,5 +292,49 @@ write.csv(dfc2,'dfc2.csv')
 
 ```
 
+
+#Okay last thing sort the lags 
+
+```{r}
+dhistall <- read.csv("dfc.csv")
+dhistall <- dhistall %>% dplyr::filter(lagtype != "unknown")
+dhist5 <- dhistall %>% dplyr::filter(lagtype == "five")
+dhist10 <- dhistall %>% dplyr::filter(lagtype == "ten")
+```
+
+
+```{r}
+#put them in order of smallest to greatest 
+#d_1, d_2, d_3, d_4, d_5 
+dhist5size <- dhist5 %>% dplyr::filter(!is.na(lag1) & !is.na(lag2) &  !is.na(lag3)  & !is.na(lag4) &  !is.na(lag5))
+
+lagsrt <- apply(dhist5size[,26:30],1, sort) 
+tlagsrt <- t(lagsrt)
+tlagsrt <- as.data.frame(tlagsrt)
+dhist5size$d1 <- tlagsrt[,1]
+dhist5size$d2 <- tlagsrt[,2]
+dhist5size$d3 <- tlagsrt[,3]
+dhist5size$d4 <- tlagsrt[,4]
+dhist5size$d5 <- tlagsrt[,5]
+
+dhist10size <- dhist10 %>% dplyr::filter(!is.na(lag1) & !is.na(lag2) &  !is.na(lag3)  & !is.na(lag4) &  !is.na(lag5), !is.na(lag6) & !is.na(lag7) &  !is.na(lag8)  & !is.na(lag9) &  !is.na(lag10))
+
+lagsrt10 <- apply(dhist10size[,26:35],1, sort) 
+tlagsrt10 <- t(lagsrt10)
+tlagsrt10 <- as.data.frame(tlagsrt10)
+dhist10size$d1 <- tlagsrt10[,1]
+dhist10size$d2 <- tlagsrt10[,2]
+dhist10size$d3 <- tlagsrt10[,3]
+dhist10size$d4 <- tlagsrt10[,4]
+dhist10size$d5 <- tlagsrt10[,5]
+dhist10size$d6 <- tlagsrt10[,6]
+dhist10size$d7 <- tlagsrt10[,7]
+dhist10size$d8 <- tlagsrt10[,8]
+dhist10size$d9 <- tlagsrt10[,9]
+dhist10size$d10 <- tlagsrt10[,10]
+
+write.csv(dhist10size,'dhist10size.csv')
+write.csv(dhist5size,'dhist5size.csv')
+```
 
 

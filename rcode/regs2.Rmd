@@ -8,6 +8,7 @@ output: pdf_document
 ```{r}
 library(texreg)
 library(dplyr)
+library(ggplot2)
 ```
 
 ```{r}
@@ -22,64 +23,47 @@ dhist10 <- dhistall %>% dplyr::filter(lagtype == "ten")
 #this is table 3.1
 meanlm <- lm(amount ~ histavg*lagtype, data = dhistall)
 meanlm2 <- lm(amount ~ histavg*lagtype + is_anonymous*histavg, data = dhistall)
-meanlm3 <- lm(amount ~ histavg*lagtype + is_female*histavg , data = dhistall)
+gdhistall <- dhistall %>% dplyr::filter(gender != "unknown" & gender != "anonymous")  #filter out unknown or anonymous donations
+meanlm3 <- lm(amount ~ histavg*lagtype + is_female*histavg , data = gdhistall)
 meanlm4 <- lm(amount ~ histavg*lagtype + nonprofit*histavg , data = dhistall)
+meanlm5 <- lm(amount ~ histavg*lagtype + gender*histavg , data = dhistall)
 texreg(list(meanlm, meanlm2, meanlm3, meanlm4))
 
-#this is table 3.2 
+#looking at differences btwn the two subsets
 meanlm5 <- lm(amount ~ histavg , data = dhist5)
 meanlm10 <- lm(amount ~ histavg, data = dhist10)
 texreg(list(meanlm5, meanlm10))
 
+meanlm5 <- lm(amount ~ histavg , data = dhist25)
+meanlm10 <- lm(amount ~ histavg, data = dhist210)
+texreg(list(meanlm5, meanlm10))
+
 #this is appendix A2
-meanlmadd <- lm(amount ~ histavg*lagtype + dow + month + hourofday +  year + is_female*histavg, data = dhistall)
-summary(meanlmadd)
-texreg(meanlmadd)
+meanlmadd <- lm(amount ~ histavg*lagtype + dow + month + hourofday +  year + histavg, data = dhistall)
+meancatelm <- lm(amount ~ histavg*category, data = dhistall)
+meancountd <- lm(amount ~ histavg*I(countd/100), data = dhistall)
+
+texreg(meancountd)
 
 #this is table 3.2 
 #first make indicator to see if has reached goal amount for progress
-dhistallp <- dhistall %>% 
+dhistallp <- dhistall2 %>% 
+  dplyr::filter(numdonor >= 15) %>%
+  dplyr::filter(maxedout == FALSE) %>%
   mutate(comp = case_when(
-    progress >= 1 ~ TRUE, 
+    praised >= 1 ~ TRUE, 
     TRUE ~ FALSE
 ))
-seedlm1 <- lm(amount ~ histavg*lagtype + progress*comp + progress*histavg, data = dhistallp)
-seedlm2 <- lm(amount ~ histavg*lagtype + seedmoney*comp + seedmoney*histavg, data = dhistallp)
-summary(seedlm1)  
-summary(seedlm2)
+seedlm1 <- felm(amount ~ histavg + I(praised*100)*comp + I(praised*100)*histavg | urlsolid, data = dhistallp)
+seedlm2 <- felm(amount ~ histavg + I(seedmoney/100)*comp + I(seedmoney/100)*histavg | urlsolid, data = dhistallp)
+
 texreg(list(seedlm1, seedlm2))
-
-summary(seedlm2)
-plot(meanlm1ln)   
-plot(meanlm)  
 ```
-
-```{r}
-#timeafter
-timeafter<- lm(timeafter ~ histavg , data = dhistall)
-timeafter2<- lm(amount ~ timebefore*histavg , data = dhistall)
-summary(timeafter)
-summary(timeafter2)
-```
-
-
-```{r}
-categorylm <- lm(amount ~ histavg*lagtype + category*histavg, data = dhistall)
-texreg(categorylm)
-```
-
-
-```{r}
-#anon reg
-anonlm <- glm(is_anonymous ~ anonprop, data = dhist, family = "binomial")
-summary(anonlm)
-texreg(anonlm)
-```
-
 
 now for some size based models 
 
 ```{r}
+#this is table 3.3
 minlm <- lm(amount ~ d1, data = dhist5size)
 summary(minlm)
 d2lm <- lm(amount ~ d2, data = dhist5size)
@@ -98,11 +82,6 @@ texreg(list(alllm, minlm, medianlm, maxlm))
 plot(distlm)
 summary(allinterlm)
 texreg(distlm)
-
-increaseinpred <- c(1.31093, 0.86477, 0.20340, 0.06263, 0.01331)
-d <- c(1, 2, 3, 4, 5)
-r <- as.data.frame(cbind(d, increaseinpred))
-ggplot(r, aes(x = d, y = increaseinpred)) + geom_bar(color="steelblue", fill="white", stat = "identity") 
 ```
 
 ```{r}
@@ -115,35 +94,112 @@ summary(max10lm)
 all10lm <- lm(amount ~ d1 + d2 + d3 + d4 + d5 + d6 + d7 + d8 + d9 + d10, data = dhist10size)
 summary(all10lm)
 ```
-Cross sectional regression 
+
+now for some quantile regression
 
 ```{r}
+library(quantreg)
+#https://bookdown.org/wfoote01/primer_quantile-regression/primer_quantile-regression.html
+#http://www.econ.uiuc.edu/~roger/courses/RMetrics/ex.pdf
+
+qregr=rq(amount~histavg, tau = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9), data = dhistall)
+qreg85=rq(amount~histavg, tau = c(0.85), data = dhistall)
+qreg95=rq(amount~histavg, tau = c(0.95), data = dhistall)
+summary(qregr)
+texreg(qregr)
+
+#make vecs of regression output
+theta <- c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85,  0.9, 0.95)
+vec <- c(0.00923, 0.02331, 0.04417, 0.10127, 0.07937, 0.18975, 0.31172, 0.36464, 0.65882, 1.17953, 2.21402)
+ster <- c(0.00092, 0.00241, 0.00256, 0.00370, 0.00404, 0.00807, 0.01213, 0.02228, 0.03769, 0.06650, 0.15200)
+
+#check if there are significantly different 
+anova(qreg85,qreg95)
+
+#make into a dataframe
+qr <- cbind(tau, vec, ster)
+qr <- as.data.frame(qr)
+
+#plot the quantile regression
+#this is figure 3.6
+qr %>% 
+  mutate(ciup = vec + 2*(ster), cidown = vec - 2*(ster)) %>% 
+  ggplot(aes(tau)) + 
+  geom_line(aes(y=vec), colour="blue") + 
+  geom_ribbon(aes(ymin=ciup, ymax=cidown), alpha=0.2) + 
+  xlab("theta") + ylab("estimated slope") + 
+  scale_x_continuous(breaks = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85,  0.9, 0.95))
+
+ggsave("quantslopes.png", width = 7, height = 4, units = "in")
+
+```
+
+```{r}
+#add the minimum and maximum donation 
+dhist5size <- read.csv("dhist5size.csv")
+dhist10size <- read.csv("dhist10size.csv")
+
+dhist5sizemod <- dhist5size %>% 
+  mutate(min = d1, med = d3,  max = d5) %>% 
+  select(-d1, -d2, -d3, -d4, -d5)
+
+dhist10sizemod <- dhist10size %>% 
+  mutate(min = d1, med = I((d4 + d5)/2), max = d10) %>% 
+  select(-d1, -d2, -d3, -d4, -d5, -d6, -d7, -d8, -d9, -d10)
+
+dhistallsize <- rbind(dhist5sizemod,dhist10sizemod)
+
+qregmin1=rq(amount~min, tau = c(0.10), data = dhistallsize)
+qregmin2=rq(amount~min, tau = c(0.20), data = dhistallsize)
+qregmin3=rq(amount~min, tau = c(0.30), data = dhistallsize)
+qregmin4=rq(amount~min, tau = c(0.40), data = dhistallsize)
+qregmin5=rq(amount~min, tau = c(0.50), data = dhistallsize)
+qregmin6=rq(amount~min, tau = c(0.60), data = dhistallsize)
+qregmin7=rq(amount~min, tau = c(0.70), data = dhistallsize)
+qregmin8=rq(amount~min, tau = c(0.80), data = dhistallsize)
+qregmin85=rq(amount~min, tau = c(0.85), data = dhistallsize)
+qregmin9=rq(amount~min, tau = c(0.90), data = dhistallsize)
+qregmin95=rq(amount~min, tau = c(0.95), data = dhistallsize)
+
+qregmin90=rq(amount~min, tau = c(0.90), data = dhistallsize)
+qregmax10=rq(amount~max, tau = c(0.10), data = dhistallsize)
+qregmax50=rq(amount~max, tau = c(0.50), data = dhistallsize)
+qregmax90=rq(amount~max, tau = c(0.90), data = dhistallsize)
+qregmax95=rq(amount~max, tau = c(0.95), data = dhistallsize)
+qreg50=rq(damount~dhistavg, tau = c(0.50), data = dhistall)
+
+
+```
+
+```{r}
+hd <- dhistall %>% dplyr::filter(countd == 1000) %>% distinct(urlsolid)
+b<- dhistall %>% dplyr::filter(urlsolid == "afd-mitch-lundgaard-family-fund")
+bqreg =rq(amount~histavg, tau = c(0.25, 0.75, 0.95), data = b)
+summary(bqreg)
+```
+
+
+Extra stuff
+
+```{r}
+#can add this later if you have time
+#anon reg
+anonlm <- glm(is_anonymous ~ anonprop, data = dhistall, family = "binomial")
+fproplm <- glm(is_female ~ fprop, data = dhistall, family = "binomial")
+summary(anonlm)
+summary(fproplm)
+texreg(anonlm)
+```
+
+
+```{r}
+#this regression is looking at the cross sections but idk if it is that interesting 
 cross1 <- dhistall %>% dplyr::filter(numdonor == 2)
 cross1lm <- lm(amount ~ lag1, data = cross1)
 cross2 <- dhistall %>% dplyr:: filter(numdonor == 3) %>% mutate(hisavg = I((lag1 + lag2)/2))
 cross2lm <- lm(amount ~ hisavg, data = cross2)
 summary(cross2lm)
 ```
-
-Seed money stuff 
-
-```{r}
-#this is table 3.2
-dhistallp <- dhistall %>% #make indicator for reaching goal amount
-  mutate(comp = case_when(
-    progress >= 1 ~ TRUE, 
-    TRUE ~ FALSE))
-  
-seedlm1 <- lm(amount ~ histavg + progress*histavg + progress*comp, data = dhistallp)
-feseedlm2 <- lm(amount ~ histavg + seedmoney*comp + seedmoney*histavg, data = dhistallp)
-summary(seedlm1)  
-summary(feseedlm2)
-texreg(seedlm1)
-```
-
-
-
-
 
 
 Now begins fixed effects 
@@ -153,19 +209,21 @@ library(lfe)
 ```
 
 
-
 ```{r}
-#this is table 3.5 
+#this is table 3.5 (subset of 5 donations)
+
 fehistavg <- felm(amount ~ histavg  | urlsolid, data = dhist5,
   contrasts = c('urlsolid', 'createdxts'))
 
-fehistavg2 <- felm(amount ~ histavg*is_female | urlsolid, data = dhist5,
+h <- dhist5 %>% dplyr::filter(gender != "unknown" & gender != "anonymous")
+
+fehistavg2 <- felm(amount ~ histavg*is_female | urlsolid, data = h,
   contrasts = c('urlsolid', 'createdxts'))
 
 fehistavg3 <- felm(amount ~ histavg*is_anonymous | urlsolid, data = dhist5,
   contrasts = c('urlsolid', 'createdxts'))
 
-fehistavg4 <- felm(amount ~ histavg*gender | urlsolid, data = dhist5,
+fehistavg4 <- felm(amount ~ histavg*gender | urlsolid, data = h,
   contrasts = c('urlsolid', 'createdxts'))
 
 fehistavg5 <- felm(amount ~ histavg*nonprofit | urlsolid, data = dhist5,
@@ -176,23 +234,48 @@ texreg(list(fehistavg, fehistavg2, fehistavg3))
 
 
 ```{r}
-#this is table 3.6
+#this is table 3.6 (subset of 10 donations)
+f <- dhist10 %>% dplyr::filter(gender != "unknown")
+
 ffehistavg <- felm(amount ~ histavg  | urlsolid, data = dhist10,
   contrasts = c('urlsolid', 'createdxts'))
 
-ffehistavg2 <- felm(amount ~ histavg*is_female | urlsolid, data = dhist10,
+hh <- dhist10 %>% dplyr::filter(gender != "unknown" & gender != "anonymous")
+
+ffehistavg2 <- felm(amount ~ histavg*is_female | urlsolid, data = hh,
   contrasts = c('urlsolid', 'createdxts'))
 
 ffehistavg3 <- felm(amount ~ histavg*is_anonymous | urlsolid, data = dhist10,
   contrasts = c('urlsolid', 'createdxts'))
 
+ffehistavg4 <- felm(amount ~ histavg*gender | urlsolid, data = f,
+  contrasts = c('urlsolid', 'createdxts'))
 
-summary(ffehistavg3)
+summary(ffehistavg2)
 summary(ffehistavg4)
+
 texreg(list(ffehistavg, ffehistavg2, ffehistavg3))
 ```
 
 ```{r}
+#fixed effects with all donations
+ffehistavg <- felm(amount ~ histavg  | urlsolid, data = dhistall,
+  contrasts = c('urlsolid', 'createdxts'))
+
+ffehistavg2 <- felm(amount ~ histavg*is_female | urlsolid, data = dhistall,
+  contrasts = c('urlsolid', 'createdxts'))
+
+ffehistavg3 <- felm(amount ~ histavg*is_anonymous | urlsolid, data = dhistall,
+  contrasts = c('urlsolid', 'createdxts'))
+
+ffehistavg4 <- felm(amount ~ histavg*gender | urlsolid, data = dhistall,
+  contrasts = c('urlsolid', 'createdxts'))
+
+
+```
+
+```{r}
+#size based fixed effects regression
 sizebased <- felm(amount ~ d1 + d2 + d3 + d4 + d5  | urlsolid, data = dhist5size,
   contrasts = c('urlsolid', 'createdxts'))
 fed1 <- felm(amount ~ d1 | urlsolid, data = dhist5size,
@@ -209,6 +292,7 @@ texreg(list(sizebased, fed1, fed3, fed5))
 Looking at interarrival times 
 
 ```{r}
+#break the arrival times into quartiles
 dhistinter <- dhistall %>% 
   dplyr::filter(countd >= 100) %>%
   dplyr::filter(!is.na(timebefore)) %>%
@@ -223,12 +307,6 @@ dhistinter <- dhistall %>%
 feinter  <- felm(amount ~ histavg*as.factor(quartile)  | urlsolid, data = dhistinter,
   contrasts = c('urlsolid', 'createdxts'))
 
-dhistinter2 <- dhistinter %>% dplyr::filter(numdonor > 10)
-
-feinter2  <- felm(amount ~ histavg*as.factor(quartile)  | urlsolid, data = dhistinter2,
-  contrasts = c('urlsolid', 'createdxts'))
-
-summary(feinter2)
 texreg(feinter2)
 ```
 
@@ -251,5 +329,22 @@ feinter3  <- felm(amount ~ histavg*firstinmorn | urlsolid, data = firstmorn,
 feinter3  <- felm(amount ~ histavg*hrscat | urlsolid, data = firstmorn,
   contrasts = c('urlsolid', 'createdxts'))
 summary(feinter3)
+```
+
+Look at see if stuff like variance and skew of dispayed donations matters
+
+```{r}
+dhistallstar <- dhistall %>% select(amount, donation_id, createdxts, urlsolid, skew, histavg, var, kurt)
+
+dhistallstar <- dhistallstar %>% mutate(skewind = case_when(
+    skew < 0 ~ "neg",
+    skew >= 0 ~ "positive"))
+
+dhistallstar <- dhistallstar %>% mutate(varind = case_when(
+    var < 1843 ~ "small",
+    var >= 1843 ~ "big"))
+    
+feinter  <- felm(amount ~ histavg*varind  | urlsolid, data = dhistallstar,
+  contrasts = c('urlsolid', 'createdxts'))    
 ```
 

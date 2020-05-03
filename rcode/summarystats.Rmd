@@ -22,66 +22,53 @@ library(stringr)
 
 
 ```{r}
-df <- read.csv("dhist1to4.csv")
-dhist <- tbl_df(df)
-
-df2 <- read.csv("dhist5to8.csv")
-dhisttest <- tbl_df(df2)
-dhisttest <- sumstats(dhisttest)
 
 dhistall <- read.csv("dfc.csv")
 dfc <- read.csv("dfc.csv")
 
+#dhistall2 <- read.csv("dfc2.csv")
+#dfc2 <- read.csv("dfc2.csv")
+
+dhist5size <- read.csv("dhist5size.csv")
+dhist10size <- read.csv("dhist10size.csv")
+
+
+# a litte cleaning,should move this to clean rmd
 dhistall$category<- gsub("[^A-Za-z0-9 ]","",dhistall$category)
 dhistall$category<- str_replace(dhistall$category,"fundraiser","")
 dhistall$gender <- as.character(dhistall$gender)
-dhistall$nbrSims[is.na(dhistall$gender)] <- "unknown"
+dhistall$gender[is.na(dhistall$gender)] <- "unknown"
+
+#dhistall2$category<- gsub("[^A-Za-z0-9 ]","",dhistall2$category)
+#dhistall2$category<- str_replace(dhistall2$category,"fundraiser","")
+#dhistall2$gender <- as.character(dhistall2$gender)
+#dhistall2$gender[is.na(dhistall2$gender)] <- "unknown"
 ```
 
 
 ```{r}
 #corresponds to table 2.1
-nrow(dhistall)
-mean(dhistall$amount)
-sd(dhistall$amount)
-sum(dhistall$amount)
-median(dhistall$amount)
+nrow(dfc)
+mean(dfc$amount)
+sd(dfc$amount)
+sum(dfc$amount)
+median(dfc$amount)
 
+genderstats <- dhistall %>%
+  group_by(gender) %>% 
+  summarize(count = n(), 
+            meanamt = mean(amount))
 
-anonhist <- dhistall %>% dplyr::filter(gender == "anonymous")
-nrow(anonhist)
-mean(anonhist$amount)
-
-malehist <- dhistall %>% dplyr::filter(gender == "male")
-nrow(malehist)
-mean(malehist$amount)
-
-femalehist <- dhistall %>% dplyr::filter(gender == "female")
-nrow(femalehist)
-mean(femalehist$amount)
-
-unknownhist <- dhistall %>% dplyr::filter(is.na(gender))
-nrow(unknownhist)
-mean(unknownhist$amount)
-
-dhistsum <- dhistall %>% group_by(category) %>% group_by(gender, add = TRUE) %>% summarize(total = n(), meand = mean(amount)) %>% arrange(desc(total), .by_group = TRUE)
+dhistsum <- dhistall %>% #you should add this table to thesis
+  group_by(category) %>% 
+  group_by(gender, add = TRUE) %>% 
+  summarize(total = n(), meand = mean(amount)) %>% 
+  arrange(desc(total), .by_group = TRUE)
 
 ```
 
-
-
 ```{r}
-#this is figure 2.4 
-dfc %>% dplyr::filter(terminated != TRUE) %>% distinct(urlsolid, .keep_all = TRUE) %>% mutate(progress = progress *100) %>%
-ggplot( aes(x = progress)) + geom_histogram(aes(y=..density..), colour="black", fill="white") +
- geom_density(alpha=.2, fill="#FF6666") + xlim(0,150) 
-ggsave("pdffund.png", width = 7, height = 4, units = "in")
-```
-
-
-
-```{r}
-#this is figure 2.3
+#this is figure 2.2
 dhistall %>% 
   ggplot(aes(x = amount)) + 
   geom_histogram(binwidth = 5, fill = "white", color="steelblue", position = "identity") +
@@ -89,41 +76,9 @@ dhistall %>%
 ggsave("amtdist.png", width = 7, height = 4, units = "in")
 ```
 
-
 ```{r}
-#this is figure 2.5
-dhistall$month <- fct_relevel(dhistall$month, levels = c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"))
-                           
-ggplot(dhistall, aes(x = month, y = amount))  +
-  geom_boxplot() + ylim(0,150)
-
-
-ggsave("monthdonations.png", width = 7, height = 4, units = "in")
-```
-
-
-```{r}
-dhistall %>% 
-  group_by(dow) %>% 
-  summarise(meand = mean(amount)) %>% 
-  ggplot(aes(x = dow, y = meand))  +
-  geom_point() + ylim(0,150)
-```
-
-
-```{r}
-#this is figure 2.6
-ggplot(dhistall, aes(x = hourofday, y = amount)) +
-  geom_pointdensity() +
-  scale_color_viridis_c() + 
-  ylim(0,250)
-ggsave("timeofdaydonations.png", width = 7, height = 4, units = "in")
-```
-
-
-```{r}
-
-
+#this is figure 2.3
+#looking at donations by category 
 dhistall %>%   
   group_by(category) %>% 
   summarize(meanamount = mean(amount)) %>% 
@@ -153,26 +108,95 @@ ggsave("totbycate.png", width = 7, height = 4, units = "in")
 
 ```
 
+```{r}
+#this is figure 2.4
+dfc %>% 
+  group_by(numdonor) %>% 
+  summarize(mean = mean(amount)) %>% 
+  ggplot(aes(x = numdonor, y = mean)) + 
+  geom_bar(stat = "identity", color="steelblue", fill="white") + xlim(0,30) + ylim(0,500) + xlab("number donor") + ylab("mean amount")
+
+ggsave("amtnumdonor.png", width = 7, height = 4, units = "in")
+```
+
 
 ```{r}
-lambda <- nrow(dhistall$timeafter)/sum(dhistall$timeafter)
-eq = function(x){lambda * exp(-lambda*x)}
+#this is figure 2.5 (shows the data on us map)
+library(ggmap)
+library(zipcode)
+library(maps)
 
-ggplot(dhistall, aes(x = timeafter))  +
-  geom_histogram(bins = 30) + xlim(0, 50000) + 
-  stat_function(fun=eq)
+dfc$zip<- clean.zipcodes(dfc$zip)
+data(zipcode)
+mapdf<- merge(dfc, zipcode, by='zip')
+countdf <- mapdf %>% 
+  select(urlsolid, donation_id, zip) %>% 
+  group_by(zip) %>%  
+  summarise(campaigns = n_distinct(urlsolid), donations = n_distinct(donation_id)) 
+mapdf <- left_join(mapdf, countdf, by = "zip")
 
-x <- seq(0, 1000, length.out=1000)
-dat <- data.frame(x=x, px=dexp(x, rate=lambda))
-ggplot(dat, aes(x=x, y=px)) + geom_line()
+us<-map_data('state')
 
-ggplot(data.frame(x=c(1, 50000)), aes(x=x)) + 
-  stat_function(fun=eq)
+ggplot(mapdf,aes(longitude,latitude)) +
+  geom_polygon(data=us,aes(x=long,y=lat,group=group),color='grey',fill=NA) +
+  geom_point(aes(color = campaigns, size = donations)) +
+  xlim(-125,-65) + ylim(23,50)
+ggsave("map.png")
+```
 
+
+```{r}
+#this is figure 2.6
+dfc %>% 
+  dplyr::filter(terminated != TRUE) %>% 
+  distinct(urlsolid, .keep_all = TRUE) %>% 
+  mutate(progress = progress *100) %>%
+  ggplot( aes(x = progress)) + 
+  geom_histogram(aes(y=..density..), colour="black", fill="white") +
+  geom_density(alpha=.2, fill="#FF6666") + xlim(0,150) 
+
+ggsave("pdffund.png", width = 7, height = 4, units = "in")
 ```
 
 ```{r}
-#for each campaign identify a large donation as 1/2 stdev above mean 
+#this is figure 2.7 (not that interesting tbh, maybe pull from draft)
+dfc2$month <- fct_relevel(dfc2$month, levels = c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"))
+                           
+ggplot(dfc2, aes(x = month, y = amount))  +
+  geom_boxplot() + ylim(0,150)
+
+ggplot(dfc2, aes(x = dow, y = amount))  +
+  geom_boxplot() + ylim(0,150)
+
+ggsave("monthdonations.png", width = 7, height = 4, units = "in")
+```
+
+```{r}
+#looking at donations by day of week not included in thesis
+dhistall %>% 
+  group_by(dow) %>% 
+  summarise(meand = mean(amount)) %>% 
+  ggplot(aes(x = dow, y = meand))  +
+  geom_point() + ylim(0,150)
+```
+
+
+```{r}
+#this is figure 2.8 (maybe pull from draft)
+ggplot(dhistall, aes(x = hourofday, y = amount)) +
+  geom_pointdensity() +
+  scale_color_viridis_c() + 
+  ylim(0,250)
+
+ggsave("timeofdaydonations.png", width = 7, height = 4, units = "in")
+```
+
+
+That's it for chapter 2 stuff
+
+Now looking at large and small donations
+
+```{r}
 
 #get camp means and standard deviations
 dg2 <- dfc %>% 
@@ -193,16 +217,21 @@ dg <- dfc %>%
     TRUE ~ "ignore"
   ))
 
-#demean observations
+#demean observations and make sure that it is complete
 m<- dg %>% 
   select(amount, lagtype,largeness, lag1, lag2, lag3, lag4, lag5, lag6, lag7, lag8, lag9, lag10, lead1, lead2, lead3, lead4, lead5,lead6, lead7, lead8, lead9, lead10, meanofcamp) %>%
   dplyr::filter(!is.na(lag10) &!is.na(lag9), !is.na(lag8) &!is.na(lag7) &!is.na(lag6),!is.na(lag5) &!is.na(lag4), !is.na(lag3) &!is.na(lag2) &!is.na(lag1), !is.na(lead1) &!is.na(lead2), !is.na(lead3) &!is.na(lead4) &!is.na(lead5), !is.na(lead6) &!is.na(lead7), !is.na(lead8) &!is.na(lead9) &!is.na(lead10)) %>% 
-  mutate(amount = amount - meanofcamp, lag1 = lag1 - meanofcamp, lag2 = lag2 - meanofcamp, lag3 = lag3 - meanofcamp, lag4 = lag4 - meanofcamp, lag5 = lag5 - meanofcamp, lag6 = lag6 - meanofcamp, lag7 = lag7 - meanofcamp, lag8 = lag8 - meanofcamp, lag9 = lag9 - meanofcamp, lag10 = lag10 - meanofcamp, lead1 = lead1 - meanofcamp, lead2 = lead2 - meanofcamp, lead3 = lead3 - meanofcamp, lead4 = lead4 - meanofcamp, lead5 = lead5 - meanofcamp, lead6 = lead6 - meanofcamp, lead7 = lead7 - meanofcamp, lead8 = lead8 - meanofcamp, lead9 = lead9 - meanofcamp, lead10 = lead10 - meanofcamp) %>%
+  mutate(amount = amount - meanofcamp, lag1 = lag1 - meanofcamp, lag2 = lag2 - meanofcamp, lag3 = lag3 - meanofcamp, lag4 = lag4 - meanofcamp, lag5 = lag5 - meanofcamp, lag6 = lag6 - meanofcamp, lag7 = lag7 - meanofcamp, lag8 = lag8 - meanofcamp, lag9 = lag9 - meanofcamp, lag10 = lag10 - meanofcamp, lead1 = lead1 - meanofcamp, lead2 = lead2 - meanofcamp, lead3 = lead3 - meanofcamp, lead4 = lead4 - meanofcamp, lead5 = lead5 - meanofcamp, lead6 = lead6 - meanofcamp, lead7 = lead7 - meanofcamp, lead8 = lead8 - meanofcamp, lead9 = lead9 - meanofcamp, lead10 = lead10 - meanofcamp)
+
+#look at means on either side of large and small donations
+mcompress <- m %>%
   group_by(largeness) %>% 
   summarise(mamount = mean(amount), lag1 = mean(lag1,na.rm = TRUE), lag2 = mean(lag2,na.rm = TRUE), lag3 = mean(lag3,na.rm = TRUE), lag4 = mean(lag4,na.rm = TRUE), lag5 = mean(lag5,na.rm = TRUE), lag6 = mean(lag6,na.rm = TRUE), lag7 = mean(lag7,na.rm = TRUE), lag8 = mean(lag8,na.rm = TRUE), lag9 = mean(lag9,na.rm = TRUE), lag10 = mean(lag10,na.rm = TRUE), lead1 = mean(lead1,na.rm = TRUE), lead2 = mean(lead2,na.rm = TRUE), lead3 = mean(lead3,na.rm = TRUE), lead4 = mean(lead4,na.rm = TRUE), lead5 = mean(lead5,na.rm = TRUE), lead6 = mean(lead6,na.rm = TRUE), lead7 = mean(lead7,na.rm = TRUE), lead8 = mean(lead8,na.rm = TRUE), lead9 = mean(lead9,na.rm = TRUE), lead10 = mean(lead10,na.rm = TRUE))
 
-melt <- m %>% select(largeness, lag10, lag9, lag8, lag7, lag6, lag5, lag4, lag3, lag2, lag1, lead10, lead9, lead8, lead7, lead6, lead5, lead4, lead3, lead2, lead1) %>% melt(value.name = "dollarsfrommean")
+#melt dataframe for ggplotting
+melt <- mcompress %>% select(largeness, lag10, lag9, lag8, lag7, lag6, lag5, lag4, lag3, lag2, lag1, lead10, lead9, lead8, lead7, lead6, lead5, lead4, lead3, lead2, lead1) %>% melt(value.name = "dollarsfrommean")
 
+#okay these are figures 3.1, 3.2, and 3.4
 melt %>% dplyr::filter(largeness == "large") %>% mutate(variable = fct_relevel(variable, levels = c("lag10", "lag9", "lag8", "lag7", "lag6", "lag5", "lag4", "lag3", "lag2", "lag1", "lead1", "lead2", "lead3", "lead4", "lead5", "lead6", "lead7", "lead8", "lead9", "lead10"))) %>% ggplot(aes(x = variable, y=dollarsfrommean)) + geom_bar(stat = "identity") + xlab("Surrounding donations") + ylab("Dollars away from mean") + geom_vline(xintercept = 10.5, color = "red")
 
 ggsave("largedonation.png", width = 7, height = 4, units = "in")
@@ -219,7 +248,8 @@ ggsave("ignoredonation.png", width = 7, height = 4, units = "in")
 
 
 ```{r}
-df <- dg %>% 
+# okay now to do the t test for the above stuff
+df <- m %>% 
   dplyr::filter( !is.na(lag10) & !is.na(lag9) & !is.na(lag8) & !is.na(lag7), !is.na(lag6) & !is.na(lag5) & !is.na(lag4), !is.na(lag3) &!is.na(lag2) &!is.na(lag1), !is.na(lead1) &!is.na(lead2), !is.na(lead3) &!is.na(lead4) &!is.na(lead5)  &!is.na(lead6), !is.na(lead7) &!is.na(lead8) &!is.na(lead9)  &!is.na(lead10)) %>%
   mutate(before1 = lag1,
          after1 = lead1, 
@@ -242,64 +272,119 @@ large <- df %>% dplyr::filter(largeness == "large")
 small <- df %>% dplyr::filter(largeness == "small")
 
 #hypothesis that x has smaller mean than y 
-tlarge1 <- t.test(large$before1, large$after1, alternative = "less", var.equal = FALSE)
-tlarge2 <- t.test(large$before2, large$after2, alternative = "less", var.equal = FALSE)
-tlarge3 <- t.test(large$before3, large$after3, alternative = "less", var.equal = FALSE)
-tlarge4 <- t.test(large$before4, large$after4, alternative = "less", var.equal = FALSE)
-tlarge5 <- t.test(large$before5, large$after5, alternative = "less", var.equal = FALSE)
-tlarge5 <- t.test(large$before5, large$after5, alternative = "less", var.equal = FALSE)
-tlarge6 <- t.test(large$before6, large$after6, alternative = "less", var.equal = FALSE)
 tlarge10 <- t.test(large$before10, large$after10, alternative = "less", var.equal = FALSE)
 
-tlarge1
-tlarge2
-tlarge3
-tlarge4
-tlarge5
-tlarge6
 tlarge10
 
-#hypothesis that x has larger mean than y 
-tsmall1 <- t.test(small$before1, small$after1, alternative = "greater", var.equal = FALSE)
-tsmall2 <- t.test(small$before2, small$after2, alternative = "greater", var.equal = FALSE)
-tsmall3 <- t.test(small$before3, small$after3, alternative = "greater", var.equal = FALSE)
-tsmall4 <- t.test(small$before4, small$after4, alternative = "greater", var.equal = FALSE)
-tsmall5 <- t.test(small$before5, small$after5, alternative = "greater", var.equal = FALSE)
-tsmall6 <- t.test(small$before6, small$after6, alternative = "greater", var.equal = FALSE)
-tsmall10 <- t.test(small$before10, small$after10, alternative = "greater", var.equal = FALSE)
+#hypothesis that there are different means 
+tsmall10 <- t.test(small$before10, small$after10, alternative = "two.sided", var.equal = FALSE)
 
-tsmall1
-tsmall2
-tsmall3
-tsmall4
-tsmall5
-tsmall6
 tsmall10
-```
-
-
-```{r}
-dfc %>% 
-  group_by(numdonor) %>% 
-  summarize(mean = mean(amount)) %>% 
-  ggplot(aes(x = numdonor, y = mean)) + 
-  geom_line() + xlim(0,200) + ylim(0,500)
-
-
-dfc %>% 
-  group_by(numdonor) %>% 
-  summarize(mean = mean(amount)) %>% 
-  ggplot(aes(x = numdonor, y = mean)) + 
-  geom_line() + xlim(0,150) + ylim(0,500)
 
 ```
 
 
 ```{r}
-backwardsreg <- dg <- dfc %>% 
+#okay this is the same deal but now only looking at subset with 5 donations
+#get camp means and standard deviations
+dgg2 <- dhist25 %>% 
   dplyr::filter(countd >= 10) %>%
-  select(urlsolid, amount, donation_id, lag1, lag2, lag3, lag4, lag5, lag6, lag7, lag8, lag9, lag10) %>%
+  group_by(urlsolid) %>% 
+  summarize(meanofcamp = mean(amount), halfsd = .5*sd(amount))
+
+#look for large donations = 2x camp mean and small donation = 1/2 camp mean 
+dgg <- dhist25 %>% 
+  dplyr::filter(countd >= 10) %>%
+  select(urlsolid, amount, donation_id, lag1, lag2, lag3, lag4, lag5, lag6, lag7, lag8, lag9, lag10, lagtype) %>%
     group_by(urlsolid) %>% 
-    mutate(lead1 = dplyr::lead(amount,n = 1L), lead2 = dplyr::lead(amount,n = 2L), lead3= dplyr::lead(amount,n = 3L), lead4= dplyr::lead(amount,n = 4L), lead5= dplyr::lead(amount,n = 5L), lead6 = dplyr::lead(amount,n = 6L), lead7 = dplyr::lead(amount,n = 7L), lead8= dplyr::lead(amount,n = 8L), lead9= dplyr::lead(amount,n = 9L), lead10= dplyr::lead(amount,n = 10L))
+    mutate(lead1 = dplyr::lead(amount,n = 1L), lead2 = dplyr::lead(amount,n = 2L), lead3= dplyr::lead(amount,n = 3L), lead4= dplyr::lead(amount,n = 4L), lead5= dplyr::lead(amount,n = 5L), lead6 = dplyr::lead(amount,n = 6L), lead7 = dplyr::lead(amount,n = 7L), lead8= dplyr::lead(amount,n = 8L), lead9= dplyr::lead(amount,n = 9L), lead10= dplyr::lead(amount,n = 10L)) %>% 
+  left_join(dgg2, by = "urlsolid") %>%
+  mutate(largeness = case_when(
+    amount >= 2*meanofcamp ~ "large",
+    amount <= .5*meanofcamp ~ "small",
+    TRUE ~ "ignore"
+  ))
+
+#demean observations (there's def a better way to do this lol)
+mm<- dgg %>% 
+  select(amount, lagtype,largeness, lag1, lag2, lag3, lag4, lag5, lag6, lag7, lag8, lag9, lag10, lead1, lead2, lead3, lead4, lead5,lead6, lead7, lead8, lead9, lead10, meanofcamp) %>%
+  dplyr::filter(!is.na(lag10) &!is.na(lag9), !is.na(lag8) &!is.na(lag7) &!is.na(lag6),!is.na(lag5) &!is.na(lag4), !is.na(lag3) &!is.na(lag2) &!is.na(lag1), !is.na(lead1) &!is.na(lead2), !is.na(lead3) &!is.na(lead4) &!is.na(lead5), !is.na(lead6) &!is.na(lead7), !is.na(lead8) &!is.na(lead9) &!is.na(lead10)) %>% 
+  mutate(amount = amount - meanofcamp, lag1 = lag1 - meanofcamp, lag2 = lag2 - meanofcamp, lag3 = lag3 - meanofcamp, lag4 = lag4 - meanofcamp, lag5 = lag5 - meanofcamp, lag6 = lag6 - meanofcamp, lag7 = lag7 - meanofcamp, lag8 = lag8 - meanofcamp, lag9 = lag9 - meanofcamp, lag10 = lag10 - meanofcamp, lead1 = lead1 - meanofcamp, lead2 = lead2 - meanofcamp, lead3 = lead3 - meanofcamp, lead4 = lead4 - meanofcamp, lead5 = lead5 - meanofcamp, lead6 = lead6 - meanofcamp, lead7 = lead7 - meanofcamp, lead8 = lead8 - meanofcamp, lead9 = lead9 - meanofcamp, lead10 = lead10 - meanofcamp) %>%
+  group_by(largeness) %>% 
+  summarise(mamount = mean(amount), lag1 = mean(lag1,na.rm = TRUE), lag2 = mean(lag2,na.rm = TRUE), lag3 = mean(lag3,na.rm = TRUE), lag4 = mean(lag4,na.rm = TRUE), lag5 = mean(lag5,na.rm = TRUE), lag6 = mean(lag6,na.rm = TRUE), lag7 = mean(lag7,na.rm = TRUE), lag8 = mean(lag8,na.rm = TRUE), lag9 = mean(lag9,na.rm = TRUE), lag10 = mean(lag10,na.rm = TRUE), lead1 = mean(lead1,na.rm = TRUE), lead2 = mean(lead2,na.rm = TRUE), lead3 = mean(lead3,na.rm = TRUE), lead4 = mean(lead4,na.rm = TRUE), lead5 = mean(lead5,na.rm = TRUE), lead6 = mean(lead6,na.rm = TRUE), lead7 = mean(lead7,na.rm = TRUE), lead8 = mean(lead8,na.rm = TRUE), lead9 = mean(lead9,na.rm = TRUE), lead10 = mean(lead10,na.rm = TRUE))
+
+#this is for figure 3.3
+
+mmelt <- mm %>% select(largeness, lag10, lag9, lag8, lag7, lag6, lag5, lag4, lag3, lag2, lag1, lead10, lead9, lead8, lead7, lead6, lead5, lead4, lead3, lead2, lead1) %>% melt(value.name = "dollarsfrommean")
+
+mmelt %>% dplyr::filter(largeness == "small") %>% mutate(variable = fct_relevel(variable, levels = c("lag10", "lag9", "lag8", "lag7", "lag6", "lag5", "lag4", "lag3", "lag2", "lag1", "lead1", "lead2", "lead3", "lead4", "lead5", "lead6", "lead7", "lead8", "lead9", "lead10"))) %>% ggplot(aes(x = variable, y=dollarsfrommean)) + geom_bar(stat = "identity") + xlab("Surrounding donations") + ylab("Dollars away from mean") + geom_vline(xintercept = 10.5, color = "red")
+
+mmelt %>% dplyr::filter(largeness == "large") %>% mutate(variable = fct_relevel(variable, levels = c("lag10", "lag9", "lag8", "lag7", "lag6", "lag5", "lag4", "lag3", "lag2", "lag1", "lead1", "lead2", "lead3", "lead4", "lead5", "lead6", "lead7", "lead8", "lead9", "lead10"))) %>% ggplot(aes(x = variable, y=dollarsfrommean)) + geom_bar(stat = "identity") + xlab("Surrounding donations") + ylab("Dollars away from mean") + geom_vline(xintercept = 10.5, color = "red")
+
+ggsave("largedonation5.png", width = 7, height = 4, units = "in")
 ```
 
+```{r}
+#okay now t test for the 5 donations stuff
+r<- dgg %>% 
+  select(amount, lagtype,largeness, lag1, lag2, lag3, lag4, lag5, lag6, lag7, lag8, lag9, lag10, lead1, lead2, lead3, lead4, lead5,lead6, lead7, lead8, lead9, lead10, meanofcamp) %>%
+  dplyr::filter(!is.na(lag10) &!is.na(lag9), !is.na(lag8) &!is.na(lag7) &!is.na(lag6),!is.na(lag5) &!is.na(lag4), !is.na(lag3) &!is.na(lag2) &!is.na(lag1), !is.na(lead1) &!is.na(lead2), !is.na(lead3) &!is.na(lead4) &!is.na(lead5), !is.na(lead6) &!is.na(lead7), !is.na(lead8) &!is.na(lead9) &!is.na(lead10)) %>% 
+  mutate(amount = amount - meanofcamp, lag1 = lag1 - meanofcamp, lag2 = lag2 - meanofcamp, lag3 = lag3 - meanofcamp, lag4 = lag4 - meanofcamp, lag5 = lag5 - meanofcamp, lag6 = lag6 - meanofcamp, lag7 = lag7 - meanofcamp, lag8 = lag8 - meanofcamp, lag9 = lag9 - meanofcamp, lag10 = lag10 - meanofcamp, lead1 = lead1 - meanofcamp, lead2 = lead2 - meanofcamp, lead3 = lead3 - meanofcamp, lead4 = lead4 - meanofcamp, lead5 = lead5 - meanofcamp, lead6 = lead6 - meanofcamp, lead7 = lead7 - meanofcamp, lead8 = lead8 - meanofcamp, lead9 = lead9 - meanofcamp, lead10 = lead10 - meanofcamp) 
+
+dff <- r %>% 
+  dplyr::filter( !is.na(lag10) & !is.na(lag9) & !is.na(lag8) & !is.na(lag7), !is.na(lag6) & !is.na(lag5) & !is.na(lag4), !is.na(lag3) &!is.na(lag2) &!is.na(lag1), !is.na(lead1) &!is.na(lead2), !is.na(lead3) &!is.na(lead4) &!is.na(lead5)  &!is.na(lead6), !is.na(lead7) &!is.na(lead8) &!is.na(lead9)  &!is.na(lead10)) %>%
+  mutate(before1 = lag1,
+         after1 = lead1, 
+         before2 = lag1 + lag2, 
+         after2 = lead1 + lead2,
+         before3 = lag1 + lag2 + lag3, 
+         after3 = lead1 + lead2 + lead3,
+         before4 = lag1 + lag2 + lag3 + lag4, 
+         after4 = lead1 + lead2 + lead3 + lead4, 
+        before5 = lag1 + lag2 + lag3 + lag4 + lag5, 
+         after5 = lead1 + lead2 + lead3 + lead4 +lead5, 
+        before6 = lag1 + lag2 + lag3 + lag4 + lag5 + lag6, 
+         after6 = lead1 + lead2 + lead3 + lead4 +lead5 + lead6, 
+        before10 = lag1 + lag2 + lag3 + lag4 + lag5 + lag6 + lag7 + lag8 + lag9 + lag10, 
+        after10 = lead1 + lead2 + lead3 + lead4 + lead5 + lead6 + lead7 + lead8 + lead9 + lead10)
+
+res.ftest <- var.test(dff$before10, dff$after10, data = df)
+
+large2 <- dff %>% dplyr::filter(largeness == "large")
+small2 <- dff %>% dplyr::filter(largeness == "small")
+
+tlarge5 <- t.test(large2$before10, large2$after10, alternative = "less", var.equal = FALSE)
+tlarge5 <- t.test(large2$before5, large2$after5, alternative = "less", var.equal = FALSE)
+tlsmall5 <- t.test(small2$before10, small2$after10, alternative = "greater", var.equal = FALSE)
+```
+
+
+```{r}
+#this is figure 3.5 looking at the quantile slopes
+
+ggplot(dhistall, aes(x= histavg, y = amount)) + 
+  geom_point(alpha = .01, position = "jitter") + 
+  xlim(0,200) +  ylim(0,300) + 
+  geom_quantile(quantiles = c(0.25, 0.5, .75)) + 
+  xlab("mean of displayed donations")
+
+ggsave("quantscatter.png", width = 7, height = 4, units = "in")
+
+```
+
+```{r}
+#lambda <- nrow(dhistall$timeafter)/sum(dhistall$timeafter)
+#eq = function(x){lambda * exp(-lambda*x)}
+
+#ggplot(dhistall, aes(x = timeafter))  +
+#  geom_histogram(bins = 30) + xlim(0, 50000) + 
+#  stat_function(fun=eq)
+
+#x <- seq(0, 1000, length.out=1000)
+#dat <- data.frame(x=x, px=dexp(x, rate=lambda))
+#ggplot(dat, aes(x=x, y=px)) + geom_line()
+#
+#ggplot(data.frame(x=c(1, 50000)), aes(x=x)) + 
+#  stat_function(fun=eq)
+
+```

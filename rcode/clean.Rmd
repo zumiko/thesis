@@ -14,12 +14,6 @@ Here's where we clean the scraped data and write stuff to csvs
 
 
 TODO: 
-Do randomized test and train data (by campaign)
--- Write these to three csvs dhistrain, dhistest, dhistall
-
-
-PROBLEMS: 
-add no donations col (campatt)
 
 WISHLIST: 
 Add criteria for inactive campaigns (campatt)
@@ -67,7 +61,7 @@ dhist
 } 
 
 
-laglead <- function(fulldf){ #add the lags and leads
+laglead <- function(fulldf){ #add the lags and leads of amount and gender 
 fulldf <- fulldf %>% 
   group_by(urlsolid) %>%
   mutate(lag1 = dplyr::lag(amount,n = 1L), lag2 = dplyr::lag(amount,n = 2L), lag3= dplyr::lag(amount,n = 3L), lag4= dplyr::lag(amount,n = 4L), lag5= dplyr::lag(amount,n = 5L), lag6 = dplyr::lag(amount,n = 6L), lag7 = dplyr::lag(amount,n = 7L), lag8= dplyr::lag(amount,n = 8L), lag9= dplyr::lag(amount,n = 9L), lag10= dplyr::lag(amount,n = 10L), alag1 = dplyr::lag(is_anonymous,n = 1L), alag2 = dplyr::lag(is_anonymous,n = 2L), alag3= dplyr::lag(is_anonymous,n = 3L), alag4= dplyr::lag(is_anonymous,n = 4L), alag5= dplyr::lag(is_anonymous,n = 5L), alag6 = dplyr::lag(is_anonymous,n = 6L), alag7 = dplyr::lag(is_anonymous,n = 7L), alag8= dplyr::lag(is_anonymous,n = 8L), alag9= dplyr::lag(is_anonymous,n = 9L), alag10= dplyr::lag(is_anonymous,n = 10L), glag1 = dplyr::lag(is_female,n = 1L), glag2 = dplyr::lag(is_female,n = 2L), glag3= dplyr::lag(is_female,n = 3L), glag4= dplyr::lag(is_female,n = 4L), glag5= dplyr::lag(is_female,n = 5L), glag6 = dplyr::lag(is_female,n = 6L), glag7 = dplyr::lag(is_female,n = 7L), glag8= dplyr::lag(is_female,n = 8L), glag9= dplyr::lag(is_female,n = 9L), glag10= dplyr::lag(is_female,n = 10L))
@@ -105,7 +99,7 @@ addgender <- function(dhist){ #add the gender based on first names by social sec
   finaldf %>% select(-name.y) %>% rename(name = name.x)
 }
 
-leaddate <- function(dhist){
+leaddate <- function(dhist){ #get time before and after each donation
   dhist <- dhist  %>% 
     group_by(urlsolid) %>% 
     arrange(createdxts, .by_group = TRUE) %>%  #don't break original grouping
@@ -128,7 +122,16 @@ checkdateforlags <- function(dhist){  #partition data according to number of lag
   ))
 }
 
-sumstats <- function(f) {
+checkdateforlags2 <- function(dhist){  #partition data according to number of lags
+  dhist <- dhist %>%
+  mutate(lagtype = case_when(
+    createdxts <  ymd_hms("2019-07-25 01:00:00") & createdxts > ymd_hms("2019-04-01 01:00:00")  ~ "unknown",
+    createdxts <  ymd_hms("2019-04-01 01:00:00")   ~ "ten",
+    createdxts >  ymd_hms("2019-07-25 01:00:00")  ~ "five"
+  ))
+}
+
+sumstats <- function(f) {  #get the skew, kurtosis, mean, var of the displayed donations
   dhist10s <- f %>% dplyr::filter(lagtype == "ten" | lagtype == "unknown") %>% ungroup(urlsolid) %>% select(donation_id, lag1,lag2,lag3,lag4,lag5, lag6, lag7, lag8, lag9, lag10)
   
   variance10 <- apply(dhist10s[, 2:11], 1, var)
@@ -164,10 +167,10 @@ sumstats <- function(f) {
   g
 }
 
-addtimevars <- function(dhist){
-  dhist <- dhist %>% mutate(createdxts = fixdate(created_at)) #get to right datetime format
-  dhist <- dhist %>% mutate(dow = weekdays(createdxts)) #add day of week
-  dhist <- dhist %>% mutate(month = months(createdxts)) #good
+addtimevars <- function(dhist){ #get month, day, time and such from timestamp
+  dhist <- dhist %>% mutate(createdxts = fixdate(created_at)) 
+  dhist <- dhist %>% mutate(dow = weekdays(createdxts)) 
+  dhist <- dhist %>% mutate(month = months(createdxts)) 
   dhist <- dhist %>% mutate(year = isoyear(createdxts)) 
   dhist <- dhist %>% mutate(hourofday = hour(createdxts))
 }
@@ -185,17 +188,17 @@ maxedout <- function(dhist){#gets the number of each donor, gets camps maxed out
   dhist
 }
 
-seed <- function(dhist){
+seed <- function(dhist){  #calculate the seed money for each campaign
   dhist <- dhist %>% group_by(urlsolid) %>% mutate(seedmoney= cumsum(amount) - amount)
   dhist
 }
 
 
-cleandhist <- function(dhist){
+cleandhist <- function(dhist){ #make mega function
   dhist <- prepdhist(dhist) 
   dhist <- addtimevars(dhist)
-  dhist <- leaddate(dhist) #add lead date, timeafter, timebefore, and arrange
-  dhist <- checkdateforlags(dhist) 
+  dhist <- leaddate(dhist)
+  dhist <- checkdateforlags2(dhist) 
   dhist <- addgender(dhist)
   dhist <- laglead(dhist) 
   dhist <- sumstats(dhist)
@@ -205,14 +208,15 @@ cleandhist <- function(dhist){
 ```
 
 ```{r}
-#just run this like 15 min
+#just run this like 15-20 min
 dhistall <- cleandhist(dhistall)
+dhistallfinal <- cleandhist(dhistallfinal)
 
 #debugging
-a<- prepdhist(dhistall) #good
+a<- prepdhist(dhistallfinal) #good
 b<- addtimevars(a) #good
 c<- leaddate(b) #good
-d<- checkdateforlags(c) #good
+d<- checkdateforlags2(c) #good
 e<- addgender(d) #good
 f<- laglead(e) #good
 g<- sumstats(f)#good but slow af
@@ -220,27 +224,11 @@ h<- maxedout(g) #good
 i<- seed(h) #good
 
 
-#divy up into train and test
-m <- dhistall %>% group_by(urlsolid) %>% summarise(eh = n())
-m <- m %>% select(-eh) 
-set.seed(9)
-split = sample(c(TRUE, FALSE), nrow(m), replace=TRUE, prob=c(0.5, 0.5))
-m <- cbind(m, split)
-dhistall <- left_join(dhistall, m, by = "urlsolid")
-
 #write to csv
 write.csv(dhistall,'dhistall.csv')
+write.csv(dhistallfinal,'dhistallfinal.csv')
+dhistallfinal <- read.csv("dhistallfinal.csv")
 
-
-dhist <- cleandhist(dhist)
-dhisttest <- cleandhist(dhisttest)
-write.csv(dhisttest,'dhist5to8.csv')
-
-head(f,20)
-
-head(dhist,20)
-nrow(dhist)
-write.csv(g,'dhist1to4.csv')
 ```
 
 
@@ -284,17 +272,25 @@ cleanattributes <- function(dfatt){
 ```
 
 ```{r}
-
 campattall <- cleanattributes(campattall)
 campattall<- campattall[!duplicated(campattall$urlsolid), ]
-nrow(campattall)
+campattallfinal <- cleanattributes(campattall)
+campattallfinal<- campattallfinal[!duplicated(campattallfinal$urlsolid), ]
 ```
 
 #Merge important parts of dhist and campatt
 
 ```{r}
 dfc <- left_join(dhistall, campattall, by = "urlsolid") 
+dfc <- dfc %>% group_by(urlsolid) %>% mutate(praised = seedmoney/goalamt)
 nrow(dfc)
+write.csv(dfc,'dfc.csv')
+
+dfc2 <- left_join(dhistallfinal, campattallfinal, by = "urlsolid") 
+dfc2 <- dfc2 %>% group_by(urlsolid) %>% mutate(praised = seedmoney/goalamt)
+nrow(dfc2)
+write.csv(dfc2,'dfc2.csv')
+
 ```
 
 

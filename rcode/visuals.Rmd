@@ -8,20 +8,15 @@ output: pdf_document
 ```{r}
 library(ggmap)
 library(zipcode)
-library(ggplot2)
 library(maps)
 library(viridis)
 ```
-
-
-
 
 https://austinwehrwein.com/digital-humanities/creating-a-density-map-in-r-with-zipcodes/
 
 #Now for map stuff 
 
 ```{r}
-campatt1$urlsolid = campatt1$urlname
 campzip <- left_join(campatt1, zip1, by = "urlsolid")
 campzip$zip<- clean.zipcodes(campzip$zip)
 data(zipcode)
@@ -46,7 +41,10 @@ ggplot(mapdf,aes(longitude,latitude)) +
 dfc$zip<- clean.zipcodes(dfc$zip)
 data(zipcode)
 mapdf<- merge(dfc, zipcode, by='zip')
-countdf <- mapdf %>% select(urlsolid, donation_id, zip) %>% group_by(zip) %>%  summarise(campaigns = n_distinct(urlsolid), donations = n_distinct(donation_id)) 
+countdf <- mapdf %>% 
+  select(urlsolid, donation_id, zip) %>% 
+  group_by(zip) %>%  
+  summarise(campaigns = n_distinct(urlsolid), donations = n_distinct(donation_id)) 
 mapdf <- left_join(mapdf, countdf, by = "zip")
 
 us<-map_data('state')

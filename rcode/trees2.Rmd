@@ -1,0 +1,154 @@
+---
+title: "Untitled"
+author: "Claire Jellison"
+date: "4/30/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+set.seed(11)
+samp <- sample(c(0,1), replace=TRUE, size=nrow(dhist5size))
+dhist5size$sample= samp
+train<- dhist5size %>% dplyr::filter(sample == 0)
+test<- dhist5size %>% dplyr::filter(sample == 1)
+
+train<- train %>% dplyr::filter(!is.na(histavg), !is.na(skewness5), !is.na(kurtosis5), !is.na(variance5), !is.na(d1), !is.na(d5), !is.na(is_female))
+ttrain<- train %>% dplyr::filter(!is.na(histavg), !is.na(skewness5), !is.na(kurtosis5), !is.na(variance5), !is.na(d1), !is.na(d5), !is.na(gender))
+test <- test%>% dplyr::filter(!is.na(histavg), !is.na(skewness5), !is.na(kurtosis5), !is.na(variance5), !is.na(d1), !is.na(d5), !is.na(is_female))
+ttest<- test %>% dplyr::filter(!is.na(histavg), !is.na(skewness5), !is.na(kurtosis5), !is.na(variance5), !is.na(d1), !is.na(d5), !is.na(gender))
+```
+
+```{r}
+reg <- lm(amount ~ histavg + variance5 + kurtosis5 + skewness5 + d1 + d5 + is_female, data = train)
+summary(reg)
+yhatreg <- predict(reg, newdata = test)
+
+avgdonation <- mean(test$amount)
+ssrelinear <- sum((yhatreg-test$amount)^2)
+sste<- sum((test$amount-avgdonation)^2)
+rlinear <- 1 - (ssrelinear/sste)
+
+```
+
+Now for boosted tree
+```{r}
+tryparams <- expand.grid(
+  shrinkage = c(.001, .01, .1),
+  interaction.depth = c(1, 2, 3, 4),
+  n.minobsinnode = c(100, 500, 1000), #minimum number of observations in node 
+  optimal_trees = 0,         
+  min_RMSE = 0                   
+)
+
+for(i in 1:nrow(tryparams)) {
+  
+  gbm.tune <- gbm(
+    formula = amount ~ histavg + skewness10 + kurtosis10 + variance10 + d1 + d10 + is_female,
+    distribution = "gaussian",
+    data = ttrain,
+    n.trees = 5000,
+    interaction.depth = tryparams$interaction.depth[i],
+    shrinkage = tryparams$shrinkage[i],
+    n.minobsinnode = tryparams$n.minobsinnode[i],
+    train.fraction = .70, #use 70% of data to train the model and evaluate on the other 30% 
+    verbose = FALSE
+  )
+  
+  # add min training error and trees to grid
+  tryparams$optimal_trees[i] <- which.min(gbm.tune$valid.error)
+  tryparams$min_RMSE[i] <- sqrt(min(gbm.tune$valid.error))
+}
+
+tryparams %>% 
+  arrange(min_RMSE) 
+```
+
+
+```{r}
+library(gbm)
+boost <- gbm(
+    formula = amount ~ histavg + variance5 + kurtosis5 + skewness5 + d1 + d5 + is_female,
+    data = train,
+    n.trees = 99,
+    interaction.depth = 4,
+    shrinkage = 0.010,
+    n.minobsinnode = 1000,
+  )
+boost2 <- gbm(
+    formula = amount ~ histavg,
+    data = train,
+    n.trees = 99,
+    shrinkage = 0.010,
+    n.minobsinnode = 1000,
+  )
+
+varimpboost <- summary(boost)
+varimpboost %>% 
+  mutate(var = fct_reorder(var, rel.inf)) %>%
+  ggplot(aes(x= var, y = rel.inf)) + geom_bar(stat = "identity", color="steelblue", fill="white") +
+  coord_flip() 
+
+ggsave("varimp1.png", width = 7, height = 4, units = "in")
+
+ya<- plot(boost2,i="histavg", return.grid = TRUE)
+ggplot(ya, aes(x= histavg, y = y)) + geom_line() + ylim(0,500) + xlim(0,3000)
+
+```
+
+```{r}
+yhatboost <- predict(boost, n.trees = 77, new = test)
+avgdonation <- mean(test$amount)
+ssreboost <- sum((yhatboost-test$amount)^2)
+sste <- sum((test$amount-avgdonation)^2)
+rboost <- 1 - (ssreboost/sste)
+```
+
+
+
+Now for random forest
+```{r}
+library(randomForest)
+library(caret)
+
+
+set.seed(11)
+rf = randomForest(amount ~ histavg + skewness5 + kurtosis5 + variance5 + d1 + d5 + is_female, data= train, ntree = 30,  mimportance =TRUE)
+
+yhatrf <- predict(rf, n.trees = 30, newdata=test)
+avgdonation <- mean(test$amount)
+ssrerf <- sum((yhatrf-test$amount)^2)
+sste <- sum((test$amount-avgdonation)^2)
+rrf <- 1 - (ssrerf/sste)
+
+varImpPlot(rf)
+ggsave("varimprf2.png", width = 7, height = 4, units = "in")
+plot(rf)
+rfimp <- importance(rf)
+column = c("histavg", "is_female", "skew", "kurt", "var", "min", "max")
+rfimp<- cbind(rfimp, column)
+
+nrow(yhatrf)
+nrow(testam)
+nrow(train$amount)
+head(yhatrf)
+```
+
+```{r}
+mseboost <- mean((yhatboost -test$amount)^2)
+mselinear <- mean((yhatreg- test$amount)^2)
+mserf <- mean((yhatrf- test$amount)^2)
+
+mseboost
+mselinear
+mserf
+
+rlinear
+rboost 
+rrf 
+```
+

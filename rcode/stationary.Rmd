@@ -1,57 +1,82 @@
 ---
-title: "arima"
+title: "stationary"
 author: "Claire Jellison"
 date: "1/9/2020"
 output: pdf_docnument
 ---
-# https://nwfsc-timeseries.github.io/atsa-labs/sec-boxjenkins-aug-dickey-fuller.html
-^^ is great
+
 ```{r}
 library(dplyr)
-library(tseries)
+library(tseries) 
 ```
 
 ```{r}
-highcamp <- dhist %>% dplyr::group_by(urlsolid) %>% dplyr::summarise(count = n_distinct(donation_id)) %>% arrange(desc(count))
-toppedout <- highcamp[1:32, ]
+#sample campaigns with more than 200 donations
+set.seed(11)
+samplecamp <- dhistall %>% 
+  dplyr::group_by(urlsolid) %>% 
+  dplyr::summarise(count = n_distinct(donation_id)) %>% 
+  dplyr::filter(count > 200) %>% 
+  sample_n(10)
+
 ```
 
-
 ```{r}
-c1 <- dhist %>% dplyr::filter(urlsolid == "6ybheh-lights-on-4-lizzy")
+c1 <- dhistall %>% dplyr::filter(urlsolid == "81r9sk")
+c2 <- dhistall %>% dplyr::filter(urlsolid == "slc6a1-connect")
+c3 <- dhistall %>% dplyr::filter(urlsolid == "n3gz2w")
+c4 <- dhistall %>% dplyr::filter(urlsolid == "MasonHanson")
+c5 <- dhistall %>% dplyr::filter(urlsolid == "in-memory-of-deputy-nicolas-blane-dixon")
+c6 <- dhistall %>% dplyr::filter(urlsolid == "8puqqs")
+c7 <- dhistall %>% dplyr::filter(urlsolid == "brooke039s-cure")
+c8 <- dhistall %>% dplyr::filter(urlsolid == "ixnjmc")
+c9 <- dhistall %>% dplyr::filter(urlsolid == "Lucila")
+c10 <- dhistall %>% dplyr::filter(urlsolid == "weloveann")
+
 c1d<-ts(c1$amount)
-acf(c1d, lag.max = 15, plot = TRUE)
-head(c1)
-```
-
-```{r}
-c2 <- dhist %>% dplyr::filter(urlsolid == "wnnegt-heart4dezi")
 c2d<-ts(c2$amount)
-acf(c2d, lag.max = 15, plot = TRUE)
-head(c2)
-```
-
-
-```{r}
-c3 <- dhist %>% dplyr::filter(urlsolid == "billboards-for-justice4jody")
 c3d<-ts(c3$amount)
-acf(c3d, lag.max = 15, plot = TRUE)
-head(c3)
-```
-
-```{r}
-c4 <- dhist %>% dplyr::filter(urlsolid == "StephensonFund")
 c4d<-ts(c4$amount)
-acf(c4d, lag.max = 15, plot = TRUE)
-head(c4)
+c5d<-ts(c5$amount)
+c6d<-ts(c6$amount)
+c7d<-ts(c7$amount)
+c8d<-ts(c8$amount)
+c9d<-ts(c9$amount)
+c10d<-ts(c10$amount)
 ```
 
 
-
 ```{r}
+#conduct a dickey fuller on all of the sampled campaigns -- they are all stationary
 adf.test(c1d, alternative = "stationary", k = 0)
 adf.test(c2d, alternative = "stationary", k = 0)
 adf.test(c3d, alternative = "stationary", k = 0)
 adf.test(c4d, alternative = "stationary", k = 0)
+adf.test(c5d, alternative = "stationary", k = 0)
+adf.test(c6d, alternative = "stationary", k = 0)
+adf.test(c7d, alternative = "stationary", k = 0)
+adf.test(c8d, alternative = "stationary", k = 0)
+adf.test(c9d, alternative = "stationary", k = 0)
+adf.test(c10d, alternative = "stationary", k = 0)
 ```
+
+
+
+```{r}
+acf(c1d, lag.max = 15, plot = TRUE)
+acf(c2d, lag.max = 15, plot = TRUE)
+acf(c3d, lag.max = 15, plot = TRUE)
+acf(c4d, lag.max = 15, plot = TRUE)
+acf(c5d, lag.max = 15, plot = TRUE)
+acf(c6d, lag.max = 15, plot = TRUE)
+acf(c7d, lag.max = 15, plot = TRUE)
+acf(c8d, lag.max = 15, plot = TRUE)
+acf(c9d, lag.max = 15, plot = TRUE)
+acf(c10d, lag.max = 15, plot = TRUE)
+```
+
+
+
+
+
 

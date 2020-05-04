@@ -347,4 +347,4 @@ dhistallstar <- dhistallstar %>% mutate(varind = case_when(
 feinter  <- felm(amount ~ histavg*varind  | urlsolid, data = dhistallstar,
   contrasts = c('urlsolid', 'createdxts'))    
 ```
-
+s

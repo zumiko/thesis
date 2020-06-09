@@ -9,7 +9,6 @@ This thesis investigates the size and nature of peer effects using data collecte
 * `summarystats.Rmd` - summary stats
 * `clean.Rmd` - data cleaning and tidying and adding predictors 
 * `regs.Rmd` - includes regression models
-* `trees.Rmd` - includes tree and boosted tree models
 
 ### scraper
 * `completemergefixed.py` = pulls campaign desc, organizer, goal amount, amount raised, donor names, donor amounts, nonprofit status from GoFundMe

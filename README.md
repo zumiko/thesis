@@ -12,8 +12,6 @@ This thesis investigates the size and nature of peer effects using data collecte
 * `trees.Rmd` - includes tree and boosted tree models
 
 ### scraper
-* `prelimscrapezipw.py` = input zipcodes to get campaigns with those codes
-* `timescrapew.py` = gets time history for given campaigns
-* `completemergefixed.py` = combining the two
+* `completemergefixed.py` = pulls campaign desc, organizer, goal amount, amount raised, donor names, donor amounts, nonprofit status from GoFundMe
 
 walking on a tightrope to the sun
